@@ -17,7 +17,7 @@ The launcher binds to 127.0.0.1, prefers port 4173, opens the default browser, a
 
 ## Rebuild
 
-On each native target OS with Python 3.12 and Node.js 22:
+On each native target OS with Python 3.14.7 and Node.js 22:
 
 ```sh
 python -m pip install -r packaging/requirements-build.txt
@@ -26,8 +26,8 @@ python packaging/build.py --target linux-x64
 python packaging/smoke.py release-dist/TurtleLab-1.2.0-alpha.1-linux-x64.tar.gz
 ```
 
-Substitute the target and archive filename for Windows or macOS. The build refuses an OS/architecture mismatch. PyInstaller's entry point and data directory are explicit; it does not copy the repository wholesale. Every archive contains START_HERE.md, BUILD-INFO.json (source commit, exact Python and dependency versions), MANIFEST.json, and third-party notices. Build dependency resolution is recorded but archives are not claimed to be bit-for-bit reproducible. Publication uses only artifacts from the tested source commit and a SHA256SUMS file.
+Substitute the target and archive filename for Windows or macOS. The build refuses an OS/architecture or Python-version mismatch. PyInstaller's entry point and data directory are explicit; it does not copy the repository wholesale. Python, PyInstaller, and its dependencies are pinned. Every archive contains START_HERE.md, BUILD-INFO.json (source commit, exact Python and dependency versions), MANIFEST.json, and third-party notices. The build environment is recorded but archives are not claimed to be bit-for-bit reproducible. Publication uses only artifacts from the tested source commit and a SHA256SUMS file.
 
 Build automation has read-only repository permission and cannot publish a release or change visibility by itself. Source tests run on PRs; native packaging runs on main pushes and manual dispatches.
 
-References: [PyInstaller native build requirements](https://pyinstaller.org/en/latest/usage.html), [GitHub runner platforms](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [Python third-party licenses](https://docs.python.org/3.12/license.html).
+References: [PyInstaller native build requirements](https://pyinstaller.org/en/latest/usage.html), [GitHub runner platforms](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [Python 3.14.7](https://www.python.org/downloads/release/python-3147/), [Python third-party licenses](https://docs.python.org/3.14/license.html).

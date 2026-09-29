@@ -16,6 +16,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--target', required=True, choices=['linux-x64', 'windows-x64', 'macos-arm64', 'macos-x64'])
     args = parser.parse_args()
+    if sys.version_info[:3] != (3, 14, 7):
+        parser.error('Release packages require Python 3.14.7 on every platform.')
     expected = {'linux': 'Linux', 'windows': 'Windows', 'macos': 'Darwin'}[args.target.split('-')[0]]
     machine = platform.machine().lower()
     if platform.system() != expected or (args.target.endswith('arm64') and machine not in ['arm64','aarch64']) or (args.target.endswith('x64') and machine not in ['amd64','x86_64']):

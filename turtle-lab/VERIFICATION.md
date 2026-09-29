@@ -21,6 +21,7 @@ Verified the updated app with its secured server:
 
 - Initial drawing, presets, per-rule angle/distance edits, live geometry read-back, and reset.
 - Weighted rule editing, negative integers, invalid-weight error feedback, base-36 inputs, and preservation of hidden weights when lowering and restoring the base.
+- Weighted setups saved and restored across reload, recovery after switching away from an unfinished weight, recovery when an unfinished digit becomes hidden, and a 390-pixel layout without horizontal overflow.
 - Settings tabs, keyboard panel resizing, hiding/showing the panel, and desktop/390-pixel responsive layouts with no horizontal overflow.
 - Direction/remainder appearance options, paper background, grid toggle, and changing style without regenerating the path.
 - Playback speed, pause, exact term stepping, and a million-term drawing (500,000 moves and 500,000 turns).
