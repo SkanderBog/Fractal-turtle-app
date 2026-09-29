@@ -14,6 +14,12 @@ A digit rule computes one quantity from each number's representation. The repres
 
 ## Rules
 
+Choose **Sum of digit weights** to assign a signed integer to each digit. The app adds those weights for every digit in the number, then takes the remainder to select a turtle action. For example, in base 2 with weights **0 → −2, 1 → 1**, the number 5 is `101`, so its weight sum is `1 − 2 + 1 = 0`. The number 2 is `10`, whose sum is −1; with divisor 3 it selects remainder **2**. Remainders are always between 0 and divisor − 1.
+
+Zero is represented by a single digit 0 and contributes its weight once. No leading zeros are added. Each weight must be a whole number from −1,000,000 to 1,000,000. Weights stay exact within the supported sequence limits.
+
+**Digit values** restores ordinary digit sums. **All 1** counts the number of digits; **All 0** sends every term to remainder 0. The editor shows digits for the current base (0–9 and A–Z); hidden weights remain available if you lower and then raise the base. Saved JSON contains all 36 weights, and files from earlier versions still load with ordinary digit-value weights. Invalid edits retain the last valid picture and display an error.
+
 Each remainder supports forward, left, right, left then forward, right then forward, or no action. Combined actions **turn first**. The starting direction is 0–360°; 0° faces right, 90° faces up. The default angle is 0–360°, and default step length is 0.01–1,000 units.
 
 Each rule can override its turn angle and forward distance. Blank means use the default; **zero is a real override**. A zero-distance forward action is still counted as a move, and a 0°/360° turn is still counted as a turn. An unused override is preserved but does not affect an action that does not turn or move.

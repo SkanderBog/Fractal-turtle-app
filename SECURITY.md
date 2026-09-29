@@ -10,8 +10,10 @@ Turtle Lab is a local, static application with no account system, cloud database
 - All user-facing strings are assigned as text. There are no HTML injection sinks, evaluated expressions, or dynamically loaded remote code.
 - Imported setups are parsed as JSON with a 64 KB limit, a versioned schema, allowed-key checks, numeric bounds, and validated literal colors. Unknown keys, including prototype-related keys, are rejected. Validation finishes before imported settings affect the UI.
 - At most 1,000,000 terms and eight remainders are accepted. Integer overflow is rejected. A replacement worker terminates older unfinished work.
+- Weighted rules accept a dense list of 2–36 bounded integers covering the selected base; negative sums are normalized to valid remainders. Imported weights are data, never code or expressions.
 - Browser storage holds only explicit saved setups. Local hosting metadata, environment files, caches, and agent configuration are excluded from Git.
 - CI uses read-only repository permissions and full commit pins for its GitHub Actions.
+- Alpha archives bundle Python and a PyInstaller bootloader. The build tool version is pinned, resolved dependencies are audited and recorded, and native binaries are tested after extraction. Published archive checksums detect download changes; they are not code-signing certificates. Packages are unsigned and Mac packages are not notarized.
 
 ## Verification and limits
 

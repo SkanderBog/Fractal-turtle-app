@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULTS,digitValue,describeStep,generatePath,validateConfig,fitBounds,numberAt} from '../dist/core.mjs';
+import {DEFAULTS,digitValue,describeStep,generatePath,validateConfig,fitBounds,numberAt,ruleRemainder} from '../dist/core.mjs';
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,`${a} ≠ ${b}`);
 test('the requested rule starts at zero and turns without drawing',()=>{
   const c={...DEFAULTS,count:4};
@@ -80,4 +80,54 @@ test('validation returns independent arrays and does not mutate caller settings'
   const source={...DEFAULTS,ruleAngles:[0,null],ruleSteps:[1,null]};const c=validateConfig(source);
   c.actions[0]='N';c.ruleAngles[0]=90;c.ruleSteps[0]=8;
   assert.equal(source.actions[0],'F');assert.equal(source.ruleAngles[0],0);assert.equal(source.ruleSteps[0],1);
+});
+test('default digit weights reproduce ordinary digit sums and complete paths',()=>{
+  for(let base=2;base<=36;base++){
+    const original=generatePath({...DEFAULTS,base,count:300});
+    const weighted=generatePath({...DEFAULTS,base,count:300,metric:'weighted'});
+    assert.deepEqual(weighted,original);
+  }
+});
+test('weighted sums match an independent representation in every base',()=>{
+  const weights=Array.from({length:36},(_,d)=>d%3===0?-1000000:d*234);
+  for(let base=2;base<=36;base++)for(const n of [0,1,2,63,1000,65537,Number.MAX_SAFE_INTEGER]){
+    const expected=n.toString(base).split('').reduce((sum,d)=>sum+weights[parseInt(d,36)],0);
+    assert.equal(digitValue(n,base,'weighted',1,weights),expected);
+  }
+});
+test('zero is one zero digit, and leading zeros are not added',()=>{
+  assert.equal(digitValue(0,2,'weighted',1,[-5,3]),-5);
+  assert.equal(digitValue(1,2,'weighted',1,[-5,3]),3);
+  assert.equal(digitValue(2,2,'weighted',1,[-5,3]),-2);
+  assert.equal(digitValue(8,2,'weighted',1,[1,1]),4);
+});
+test('negative weighted sums wrap to valid actions, including exact multiples',()=>{
+  for(let m=2;m<=8;m++)for(let n=-100;n<=100;n++){
+    const r=ruleRemainder(n,m);assert.ok(r>=0&&r<m);assert.equal((n-r)%m===0,true);assert.equal(Object.is(r,-0),false);
+  }
+  const c=validateConfig({...DEFAULTS,metric:'weighted',digitWeights:[-2,1],modulus:3,actions:['F','L','RF'],count:5});
+  assert.deepEqual(Array.from({length:5},(_,i)=>describeStep(i,c).remainder),[1,1,2,2,0]);
+  const p=generatePath(c);assert.equal(p.segments,3);assert.equal(p.turns,4);assert.deepEqual([...p.remainders],[2,2,0]);
+});
+test('weight vectors are bounded, dense integers covering the selected base',()=>{
+  for(const digitWeights of [[],[1],Array(2),[1,undefined],[1,null],[1,'2'],[1,NaN],[1,Infinity],[1,1.1],[1,1000001],[1,-1000001],Array(37).fill(0),{},'01']){
+    assert.throws(()=>validateConfig({...DEFAULTS,metric:'weighted',digitWeights}));
+  }
+  assert.throws(()=>validateConfig({...DEFAULTS,base:3,digitWeights:[0,1]}));
+  const source=[-1000000,1000000],c=validateConfig({...DEFAULTS,digitWeights:source});
+  assert.equal(c.digitWeights.length,36);assert.equal(c.digitWeights[35],35);
+  c.digitWeights[0]=9;assert.equal(source[0],-1000000);
+});
+test('weighted rules work with transformed sequences and per-rule motion',()=>{
+  for(const sequence of ['integers','squares','triangular']){
+    const c=validateConfig({...DEFAULTS,sequence,metric:'weighted',base:5,digitWeights:[-7,0,3,2,-1],modulus:3,actions:['F','LF','RF'],count:100,ruleAngles:[0,90,60],ruleSteps:[2,0,3]});
+    const p=generatePath(c);let x=0,y=0,h=0;
+    for(let i=0;i<c.count;i++){
+      const s=numberAt(i,c).toString(5).split('').reduce((a,d)=>a+c.digitWeights[Number(d)],0);
+      const r=((s%3)+3)%3;
+      h=(h+(r===1?90:r===2?-60:0)+360)%360;
+      x+=c.ruleSteps[r]*Math.cos(h*Math.PI/180);y+=c.ruleSteps[r]*Math.sin(h*Math.PI/180);
+      close(p.points[2*(i+1)],x);close(p.points[2*(i+1)+1],y);
+    }
+  }
 });

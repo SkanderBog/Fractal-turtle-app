@@ -36,8 +36,14 @@
           </section>
           <section id="panel-rules" role="tabpanel" aria-labelledby="tab-rules" hidden>
             <h2>Turn digits into movement</h2><p class="section-note">Left means counterclockwise. A turn alone does not move the turtle.</p>
-            <label class="field">For each number, calculate<select id="metric"><option value="sum">Sum of its digits</option><option value="last">Its last digit</option><option value="nonzero">Number of nonzero digits</option><option value="count">Occurrences of a digit</option></select></label>
+            <label class="field">For each number, calculate<select id="metric"><option value="sum">Sum of its digits</option><option value="weighted">Sum of digit weights</option><option value="last">Its last digit</option><option value="nonzero">Number of nonzero digits</option><option value="count">Occurrences of a digit</option></select></label>
             <label class="field" id="digit-field" hidden>Digit to count (decimal value)<input id="digit" type="number" min="0" max="35" value="1"></label>
+            <section id="weights-field" class="weights-field" aria-label="Digit weights" hidden>
+              <h3>A weight for every digit</h3><p class="field-note">Add these weights instead of the digit values. Negative whole numbers are allowed.</p>
+              <div class="weight-shortcuts"><button type="button" data-weights="digits">Digit values</button><button type="button" data-weights="ones">All 1</button><button type="button" data-weights="zeros">All 0</button></div>
+              <div id="weight-grid" class="weight-grid"></div><p id="weight-example" class="weight-example"></p>
+              <p class="field-note">Negative sums wrap into remainders 0 through divisor − 1. Hidden weights are kept when the base changes.</p>
+            </section>
             <label class="modulus-field">Divide by, then take the remainder<input id="modulus" aria-label="Remainder divisor" type="number" min="2" max="8" value="2"></label>
             <div class="field-row"><label class="field">Default turn (°)<input id="angle" type="number" min="0" max="360" step="any" value="60"></label><label class="field">Default step (units)<input id="stepLength" type="number" min="0.01" max="1000" step="any" value="1"></label></div>
             <div class="angle-presets" aria-label="Quick turn angles"><button type="button" data-angle="30">30°</button><button type="button" data-angle="45">45°</button><button type="button" data-angle="60">60°</button><button type="button" data-angle="90">90°</button><button type="button" data-angle="120">120°</button></div>

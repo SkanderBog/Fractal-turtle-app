@@ -4,6 +4,10 @@ A lightweight, colorful playground for number-driven turtle paths. It starts wit
 
 ## Run
 
+**Alpha downloads:** [Linux, Windows, and macOS packages](https://github.com/SkanderBog/Fractal-turtle-app/releases). Extract the complete archive and follow `START_HERE.md`. Packages include Python and open the app in your default browser. Linux x64 requires glibc 2.35+; Windows x64 and macOS arm64/Intel builds are separate. Builds are unsigned and macOS builds are not notarized, so your OS may block them. See [release and build details](packaging/README.md).
+
+To run from source:
+
 Requires **Python 3.10+**. No packages need to be installed.
 
 ```sh
@@ -22,7 +26,7 @@ Opening the HTML directly as a file is not supported because the app uses a modu
 
 - A resizable settings panel with **Sequence**, **Rules**, and **Style** tabs; hide it to give the drawing the full window.
 - Integer, square, and triangular sequences; bases 2–36; adjustable starting index, interval, and up to **1,000,000 terms**.
-- Digit sum, last digit, nonzero-digit count, or occurrences of a chosen digit.
+- Digit sum, **sum of custom digit weights**, last digit, nonzero-digit count, or occurrences of a chosen digit. Set a signed integer weight for every digit, with shortcuts for digit values, all ones, and all zeros.
 - An independent action for every remainder: forward, left, right, turn then forward, or pause.
 - Default angle and distance, starting direction, and optional **per-rule angle and distance overrides**.
 - Colors by sequence position, movement direction, remainder, or a solid color. Four palettes, three backgrounds, line weight, grid, and marker controls.
@@ -45,7 +49,7 @@ npm test
 npm run test:server
 ```
 
-There are **31 automated tests**, including independent randomized geometry comparisons, a million-term sequence, malformed or hostile setup inputs, and HTTP server security checks. GitHub Actions runs these checks on pushes and pull requests with read-only repository permissions and pinned actions.
+There are **43 automated tests**, including independent randomized geometry comparisons, weighted rules across all 35 bases, a million-term sequence, malformed or hostile setup inputs, HTTP server security checks, and launcher behavior. GitHub Actions runs these checks with read-only repository permissions and pinned actions. Native package builds additionally audit build dependencies, verify bundle hashes, and smoke-test the extracted executable on each target OS.
 
 See [verification details](turtle-lab/VERIFICATION.md) and [security notes](SECURITY.md). These are targeted regression checks, not a guarantee that every possible vulnerability has been excluded.
 

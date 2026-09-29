@@ -12,6 +12,20 @@ test('JSON setup round-trip preserves all customized rules and appearance',()=>{
   assert.deepEqual(restored.config,c);assert.deepEqual(restored.appearance,a);assert.equal(restored.name,'My setup');
   assert.deepEqual([...generatePath(restored.config).points],[...generatePath(c).points]);
 });
+test('weighted setups round-trip all 36 weights and old files keep their meaning',()=>{
+  const weights=Array.from({length:36},(_,d)=>d*2-35);
+  const c=validateConfig({...DEFAULTS,metric:'weighted',digitWeights:weights});
+  assert.deepEqual(parseSetup(serializeSetup(c,APPEARANCE,'Weights')).config,c);
+  const old=setup();delete old.config.digitWeights;
+  const restored=parseSetup(JSON.stringify(old));
+  assert.equal(restored.config.metric,'sum');assert.deepEqual(restored.config.digitWeights,Array.from({length:36},(_,d)=>d));
+});
+test('JSON imports reject malformed weights and unsupported weighted expressions',()=>{
+  for(const digitWeights of [[null,1],[0,'alert(1)'],[0,1.5],Array(37).fill(0),{'0':0,'1':1},[0,1e99]]){
+    const data=setup();data.config.metric='weighted';data.config.digitWeights=digitWeights;
+    assert.throws(()=>parseSetup(JSON.stringify(data)));
+  }
+});
 test('malformed and oversized JSON is rejected before configuration is used',()=>{
   for(const text of ['', '{', 'null','[]','"hello"',' '.repeat(65537)])assert.throws(()=>parseSetup(text));
   const huge=setup();huge.name='x'.repeat(70000);assert.throws(()=>parseSetup(JSON.stringify(huge)));

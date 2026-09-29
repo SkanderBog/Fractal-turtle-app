@@ -10,10 +10,11 @@ const presets = {
   square: {...DEFAULTS, sequence: 'squares', base: 5, count: 8192, modulus: 3, actions: ['F','L','RF']},
 };
 const actionLabels = {F:'Forward', L:'Left turn', R:'Right turn', LF:'Left + step', RF:'Right + step', N:'No action'};
-const metricLabels = {sum:'sum', last:'last', nonzero:'nonzero', count:'count'};
+const metricLabels = {sum:'sum', weighted:'weight sum', last:'last', nonzero:'nonzero', count:'count'};
 const numericFields = ['base','start','stride','count','modulus','digit','angle','initialHeading','stepLength'];
 const storageKey = 'turtle-lab.setups.v1';
 let config = validateConfig(DEFAULTS), appearance = {...APPEARANCE}, path = null;
+let draftWeights = [...config.digitWeights];
 let worker = null, generation = 0, pendingReject = null, busy = false, debounce = 0;
 let view = {x:0,y:0,scale:1}, fittedScale = 1, width = 0, height = 0, dpr = 1;
 let position = config.count, playing = false, lastTick = 0, playPosition = 0, frame = 0;
@@ -202,19 +203,49 @@ function updateRuleInputs() {
     angle.placeholder=$('angle').value; step.placeholder=$('stepLength').value;
   }
 }
+function readDigitWeights() {
+  const weights = [...draftWeights];
+  for (const input of $('weight-grid').querySelectorAll('input')) weights[Number(input.dataset.weight)] = input.value.trim() === '' ? NaN : Number(input.value);
+  return weights;
+}
+function renderDigitWeights(weights = readDigitWeights()) {
+  draftWeights = [...weights];
+  const base = Number($('base').value);
+  if (!Number.isInteger(base) || base < 2 || base > 36) return;
+  // A hidden unfinished edit must not prevent fixing the visible experiment.
+  for (let digit=base;digit<36;digit++) if (!Number.isSafeInteger(draftWeights[digit]) || Math.abs(draftWeights[digit])>1000000) draftWeights[digit]=config.digitWeights[digit];
+  $('weight-grid').replaceChildren();
+  for (let digit = 0; digit < base; digit++) {
+    const label = document.createElement('label');
+    const symbol = document.createElement('span'); symbol.textContent = digit.toString(36).toUpperCase();
+    symbol.title = `Digit value ${digit}`;
+    const input = document.createElement('input'); input.type = 'number'; input.min = -1000000; input.max = 1000000; input.step = 1;
+    input.dataset.weight = digit; input.setAttribute('aria-label', `Weight for digit ${symbol.textContent}`);
+    input.value = Number.isFinite(weights[digit]) ? weights[digit] : '';
+    label.append(symbol,input); $('weight-grid').append(label);
+  }
+}
+function updateWeightExample() {
+  if (config.metric !== 'weighted') return;
+  const step = describeStep(Math.min(3,config.count-1),config);
+  const sum = [...step.digits].map(digit => config.digitWeights[parseInt(digit,36)]).map(weight => weight < 0 ? `(${weight})` : String(weight)).join(' + ');
+  $('weight-example').textContent = `${step.n} → ${step.digits} in base ${config.base}: ${sum} = ${step.value}; remainder ${step.remainder}.`;
+}
 function readConfig() {
   const next={};
   for (const key of numericFields) next[key]=readNumber(key);
   next.sequence=$('sequence').value; next.metric=$('metric').value;
+  next.digitWeights=next.metric==='weighted'?readDigitWeights():[...config.digitWeights];
   next.actions=[...$('rule-rows').querySelectorAll('select')].map(s=>s.value);
   next.ruleAngles=readOverrides('[data-angle]'); next.ruleSteps=readOverrides('[data-step]');
   return validateConfig(next);
 }
 function writeConfig(c) {
   for (const key of [...numericFields,'sequence','metric']) $(key).value=c[key];
-  $('digit-field').hidden=c.metric!=='count'; renderRuleRows(c);
+  $('digit-field').hidden=c.metric!=='count'; $('weights-field').hidden=c.metric!=='weighted'; renderDigitWeights(c.digitWeights); renderRuleRows(c);
 }
 function updateSummary() {
+  updateWeightExample();
   $('number-preview').textContent=Array.from({length:Math.min(6,config.count)},(_,i)=>numberAt(i,config).toString()).join(', ')+(config.count>6?' …':'');
   $('base-badge').textContent=`BASE ${config.base}`;
   $('rule-summary').textContent=config.metric==='sum'&&config.modulus===2
@@ -284,10 +315,15 @@ function fromForm() {
 }
 function scheduleUpdate(event) {
   if (event.target.id==='modulus') renderRuleRows();
-  if (event.target.id==='metric') $('digit-field').hidden=$('metric').value!=='count';
+  if (event.target.id==='metric') { $('digit-field').hidden=$('metric').value!=='count'; $('weights-field').hidden=$('metric').value!=='weighted'; }
+  if (event.target.id==='base') renderDigitWeights();
   updateRuleInputs(); $('preset').value='custom'; clearTimeout(debounce); debounce=setTimeout(fromForm,220);
 }
 $('settings').addEventListener('input',scheduleUpdate);
+for (const button of document.querySelectorAll('[data-weights]')) button.addEventListener('click',()=>{
+  renderDigitWeights(Array.from({length:36},(_,digit)=>button.dataset.weights==='ones'?1:button.dataset.weights==='zeros'?0:digit));
+  $('preset').value='custom'; clearTimeout(debounce); fromForm();
+});
 $('settings').addEventListener('submit',event=>{event.preventDefault();clearTimeout(debounce);fromForm();});
 $('preset').addEventListener('change',()=>{clearTimeout(debounce);const c=validateConfig(presets[$('preset').value]);writeConfig(c);regenerate(c).catch(()=>{});});
 $('reset').addEventListener('click',()=>{clearTimeout(debounce);$('preset').value='original';writeConfig(validateConfig(DEFAULTS));writeAppearance(APPEARANCE);regenerate(DEFAULTS).catch(()=>{});});
@@ -425,11 +461,11 @@ $('export-image').addEventListener('click',()=>{
   context.fillStyle={midnight:'#0b1116',ink:'#000000',paper:'#edf1ef'}[appearance.background];context.fillRect(0,0,output.width,output.height);context.drawImage(canvas,0,0);
   output.toBlob(blob=>{if(blob){download(blob,'turtle-lab.png');toast('PNG download requested with the current view and background.');}else toast('The image could not be created.');},'image/png');
 });
-function readState(){return {config:{...config,actions:[...config.actions],ruleAngles:[...config.ruleAngles],ruleSteps:[...config.ruleSteps]},appearance:{...appearance},segments:path?.segments??0,turns:path?.turns??0,bounds:path?.bounds??null,visibleTerms:position,busy};}
+function readState(){return {config:{...config,actions:[...config.actions],ruleAngles:[...config.ruleAngles],ruleSteps:[...config.ruleSteps],digitWeights:[...config.digitWeights]},appearance:{...appearance},segments:path?.segments??0,turns:path?.turns??0,bounds:path?.bounds??null,visibleTerms:position,busy};}
 function registerTools(){
   if(!document.modelContext?.registerTool)return;
   const lifecycle=new AbortController();window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
-  const properties={base:{type:'integer',minimum:2,maximum:36},count:{type:'integer',minimum:1,maximum:1000000},start:{type:'integer',minimum:0},stride:{type:'integer',minimum:1,maximum:1000000},sequence:{enum:['integers','squares','triangular']},metric:{enum:['sum','last','nonzero','count']},digit:{type:'integer',minimum:0,maximum:35},modulus:{type:'integer',minimum:2,maximum:8},angle:{type:'number',minimum:0,maximum:360},initialHeading:{type:'number',minimum:0,maximum:360},stepLength:{type:'number',minimum:0.01,maximum:1000},actions:{type:'array',items:{enum:Object.keys(ACTIONS)},minItems:2,maxItems:8},ruleAngles:{type:'array',items:{type:['number','null'],minimum:0,maximum:360},minItems:2,maxItems:8},ruleSteps:{type:'array',items:{type:['number','null'],minimum:0,maximum:1000},minItems:2,maxItems:8}};
+  const properties={base:{type:'integer',minimum:2,maximum:36},count:{type:'integer',minimum:1,maximum:1000000},start:{type:'integer',minimum:0},stride:{type:'integer',minimum:1,maximum:1000000},sequence:{enum:['integers','squares','triangular']},metric:{enum:['sum','weighted','last','nonzero','count']},digitWeights:{type:'array',items:{type:'integer',minimum:-1000000,maximum:1000000},minItems:2,maxItems:36},digit:{type:'integer',minimum:0,maximum:35},modulus:{type:'integer',minimum:2,maximum:8},angle:{type:'number',minimum:0,maximum:360},initialHeading:{type:'number',minimum:0,maximum:360},stepLength:{type:'number',minimum:0.01,maximum:1000},actions:{type:'array',items:{enum:Object.keys(ACTIONS)},minItems:2,maxItems:8},ruleAngles:{type:'array',items:{type:['number','null'],minimum:0,maximum:360},minItems:2,maxItems:8},ruleSteps:{type:'array',items:{type:['number','null'],minimum:0,maximum:1000},minItems:2,maxItems:8}};
   const tools=[{name:'read_turtle_experiment',title:'Read turtle experiment',description:'Read the current completed experiment, appearance, bounds, playback position, and loading state.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:readState},
     {name:'configure_turtle_experiment',title:'Configure turtle experiment',description:'Change turtle rules and generate the visible drawing. When changing modulus, supply matching actions and optional angle/distance arrays.',inputSchema:{type:'object',properties,additionalProperties:false},annotations:{readOnlyHint:false},execute:async input=>{
       if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!Object.hasOwn(properties,key)))throw new Error('Use supported experiment settings.');

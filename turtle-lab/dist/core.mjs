@@ -6,6 +6,7 @@ export const DEFAULTS = Object.freeze({
   base: 2, start: 0, stride: 1, count: 16384, sequence: 'integers',
   metric: 'sum', digit: 1, modulus: 2, angle: 60, actions: ['F', 'L'],
   initialHeading: 0, stepLength: 1, ruleAngles: null, ruleSteps: null,
+  digitWeights: null,
 });
 export function numberAt(index, c) {
   const n = c.start + index * c.stride;
@@ -21,7 +22,10 @@ export function validateConfig(input) {
     if (!Number.isSafeInteger(c[key]) || c[key] < min || c[key] > max) throw new Error(`${key} must be a whole number from ${min.toLocaleString()} to ${max.toLocaleString()}.`);
   }
   if (!['integers','squares','triangular'].includes(c.sequence)) throw new Error('Choose a supported number sequence.');
-  if (!['sum','last','nonzero','count'].includes(c.metric)) throw new Error('Choose a supported digit rule.');
+  if (!['sum','weighted','last','nonzero','count'].includes(c.metric)) throw new Error('Choose a supported digit rule.');
+  if (c.digitWeights === null) c.digitWeights = Array.from({length:36}, (_,digit) => digit);
+  if (!Array.isArray(c.digitWeights) || c.digitWeights.length < c.base || c.digitWeights.length > 36 || Array.from(c.digitWeights).some(weight => !Number.isSafeInteger(weight) || Math.abs(weight) > 1000000)) throw new Error('Supply a whole-number weight from −1,000,000 to 1,000,000 for every digit in the base (at most 36 weights).');
+  c.digitWeights = Array.from({length:36}, (_,digit) => digit < c.digitWeights.length ? c.digitWeights[digit] : digit);
   if (!Number.isFinite(c.angle) || c.angle < 0 || c.angle > 360) throw new Error('Turn angle must be between 0° and 360°.');
   if (c.metric === 'count' && c.digit >= c.base) throw new Error('The counted digit must be smaller than the base.');
   if (!Array.isArray(c.actions) || c.actions.length !== c.modulus || Array.from(c.actions).some(a => typeof a !== 'string' || !Object.hasOwn(ACTIONS,a))) throw new Error('Choose one action for every remainder.');
@@ -37,18 +41,21 @@ export function validateConfig(input) {
   if (!Number.isSafeInteger(c.start + (c.count - 1) * c.stride) || !Number.isSafeInteger(numberAt(c.count - 1,c))) throw new Error('This sequence exceeds exact integer precision. Reduce its start, interval, or length.');
   return c;
 }
-export function digitValue(n, base, metric = 'sum', digit = 1) {
+export function digitValue(n, base, metric = 'sum', digit = 1, weights = null) {
   if (metric === 'last') return n % base;
   let value = 0;
   do {
     const d = n % base;
-    value += metric === 'count' ? Number(d === digit) : metric === 'nonzero' ? Number(d !== 0) : d;
+    value += metric === 'weighted' ? (weights?.[d] ?? d) : metric === 'count' ? Number(d === digit) : metric === 'nonzero' ? Number(d !== 0) : d;
     n = Math.floor(n / base);
   } while (n > 0);
   return value;
 }
+export function ruleRemainder(value, modulus) {
+  return ((value % modulus) + modulus) % modulus;
+}
 export function describeStep(index, c) {
-  const n = numberAt(index,c), value = digitValue(n,c.base,c.metric,c.digit), remainder = value % c.modulus;
+  const n = numberAt(index,c), value = digitValue(n,c.base,c.metric,c.digit,c.digitWeights), remainder = ruleRemainder(value,c.modulus);
   return {index, n, digits:n.toString(c.base).toUpperCase(),value,remainder,action:c.actions[remainder]};
 }
 export function generatePath(input) {
@@ -63,7 +70,7 @@ export function generatePath(input) {
   headings[0] = heading;
   let minX = 0, maxX = 0, minY = 0, maxY = 0;
   for (let i = 0; i < c.count; i++) {
-    const remainder = digitValue(numberAt(i,c),c.base,c.metric,c.digit) % c.modulus;
+    const remainder = ruleRemainder(digitValue(numberAt(i,c),c.base,c.metric,c.digit,c.digitWeights),c.modulus);
     const action = c.actions[remainder];
     const angle = c.ruleAngles[remainder] ?? c.angle;
     const distance = c.ruleSteps[remainder] ?? c.stepLength;
