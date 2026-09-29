@@ -1,3 +1,4 @@
+import {DIRECTIONS,canonicalEdge,randomEdges,nearestEdge,cageEdges,trapCandidates} from './edge.mjs';
 import {ACTIONS, DEFAULTS, validateConfig, describeStep, fitBounds, numberAt} from './core.mjs';
 import {APPEARANCE, MAX_SETUP_BYTES, validateAppearance, validateSetup, parseSetup, serializeSetup} from './setup.mjs';
 
@@ -5,6 +6,10 @@ const $ = id => document.getElementById(id);
 const number = value => new Intl.NumberFormat('en', {maximumFractionDigits: 2}).format(value);
 const presets = {
   original: {...DEFAULTS},
+  'edge-quad': {...DEFAULTS,geometry:'edge',blocked:'turn',modulus:4,actions:['F','L','F','R']},
+  'edge-m3': {...DEFAULTS,geometry:'edge',blocked:'turn',modulus:3,actions:['F','L','R']},
+  'edge-parity': {...DEFAULTS,geometry:'edge',blocked:'turn'},
+  'edge-koch': {...DEFAULTS,geometry:'edge',blocked:'turn',angle:120},
   ternary: {...DEFAULTS, base: 3, count: 19683, modulus: 4, actions: ['F','L','RF','LF']},
   binary: {...DEFAULTS, modulus: 3, angle: 90, actions: ['F','L','RF']},
   square: {...DEFAULTS, sequence: 'squares', base: 5, count: 8192, modulus: 3, actions: ['F','L','RF']},
@@ -14,7 +19,7 @@ const metricLabels = {sum:'sum', weighted:'weight sum', last:'last', nonzero:'no
 const numericFields = ['base','start','stride','count','modulus','digit','angle','initialHeading','stepLength'];
 const storageKey = 'turtle-lab.setups.v1';
 let config = validateConfig(DEFAULTS), appearance = {...APPEARANCE}, path = null;
-let draftWeights = [...config.digitWeights];
+let draftWeights = [...config.digitWeights], draftEdges = [], editingEdges = false;
 let worker = null, generation = 0, pendingReject = null, busy = false, debounce = 0;
 let view = {x:0,y:0,scale:1}, fittedScale = 1, width = 0, height = 0, dpr = 1;
 let position = config.count, playing = false, lastTick = 0, playPosition = 0, frame = 0;
@@ -48,8 +53,8 @@ function refreshAppearance() {
   $('palette-field').hidden = appearance.colorMode === 'solid';
   $('solid-field').hidden = appearance.colorMode !== 'solid';
   $('line-width-label').textContent = `${appearance.lineWidth} px`;
-  $('color-key').style.background = `linear-gradient(90deg,${Array.from({length:9}, (_,i) => color(i/8)).join(',')})`;
-  const labels = {sequence:['First','Last'], direction:['0°','360°'], remainder:['Rule 0',`Rule ${config.modulus-1}`], solid:['Solid','']};
+  $('color-key').style.background = appearance.colorMode==='collision'?`linear-gradient(90deg,${color(0)} 0% 50%,${color(1)} 50% 100%)`:`linear-gradient(90deg,${Array.from({length:9}, (_,i) => color(i/8)).join(',')})`;
+  const labels = {sequence:['First','Last'], direction:['0°','360°'], remainder:['Rule 0',`Rule ${config.modulus-1}`], solid:['Solid',''], collision:['Unblocked','After search']};
   [$('key-start').textContent, $('key-end').textContent] = labels[appearance.colorMode];
   queueRender();
 }
@@ -57,12 +62,12 @@ function readAppearance() {
   return validateAppearance({palette:$('palette').value, colorMode:$('color-mode').value,
     lineWidth:Number($('line-width').value), solidColor:$('solid-color').value,
     background:$('background').value, grid:$('grid').checked, markers:$('markers').checked,
-    autoFit:$('auto-fit').checked, speed:Number($('speed').value)});
+    autoFit:$('auto-fit').checked, trapSites:$('trap-sites').checked, speed:Number($('speed').value)});
 }
 function writeAppearance(value) {
   appearance = validateAppearance(value);
   for (const [id,key] of [['palette','palette'],['color-mode','colorMode'],['line-width','lineWidth'],['solid-color','solidColor'],['background','background'],['speed','speed']]) $(id).value = appearance[key];
-  for (const [id,key] of [['grid','grid'],['markers','markers'],['auto-fit','autoFit']]) $(id).checked = appearance[key];
+  for (const [id,key] of [['grid','grid'],['markers','markers'],['auto-fit','autoFit'],['trap-sites','trapSites']]) $(id).checked = appearance[key];
   cachedPaths = null;
   refreshAppearance();
 }
@@ -80,6 +85,7 @@ function pathsForPosition() {
     if (appearance.colorMode === 'direction') t = path.headings[path.steps[i]+1] / 360;
     else if (appearance.colorMode === 'remainder') t = path.remainders[i] / (config.modulus-1);
     else if (appearance.colorMode === 'solid') t = 0;
+    else if (appearance.colorMode === 'collision') t = path.searches?.[path.steps[i]] ? 1 : 0;
     const bucket = Math.min(255,Math.floor(t*255));
     if (ends[bucket] !== i) paths[bucket].moveTo(path.points[2*i], -path.points[2*i+1]);
     paths[bucket].lineTo(path.points[2*i+2], -path.points[2*i+3]);
@@ -96,6 +102,7 @@ function render() {
   ctx.save(); ctx.translate(ox,oy); ctx.scale(view.scale,view.scale);
   ctx.lineWidth = appearance.lineWidth/view.scale;
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  if (config.geometry==='edge') drawInitialEdges();
   const paths = pathsForPosition();
   for (let i=0; i<256; i++) { ctx.strokeStyle=palette[i]; ctx.stroke(paths[i]); }
   ctx.restore();
@@ -114,7 +121,11 @@ function render() {
 }
 function fit() {
   if (!path) return;
-  view = fitBounds(path.bounds,width,height,width<500 ? 38 : 55);
+  const bounds={...path.bounds};
+  if(config.geometry==='edge')for(const [q,r,d] of config.seedEdges)for(const [a,b] of [[q,r],[q+DIRECTIONS[d][0],r+DIRECTIONS[d][1]]]){
+    const x=a+b/2,y=b*Math.sqrt(3)/2;bounds.minX=Math.min(bounds.minX,x);bounds.maxX=Math.max(bounds.maxX,x);bounds.minY=Math.min(bounds.minY,y);bounds.maxY=Math.max(bounds.maxY,y);
+  }
+  view = fitBounds(bounds,width,height,width<500 ? 38 : 55);
   fittedScale = view.scale;
   queueRender();
 }
@@ -137,7 +148,7 @@ function setPosition(value) {
   }
   $('step-back').disabled=busy||!path||position===0;
   $('step-forward').disabled=busy||!path||position===path.count;
-  updateInspector(); queueRender();
+  updateInspector(); updateEdgeStatus(); queueRender();
 }
 function stopPlayback() {
   playing=false; cancelAnimationFrame(frame);
@@ -234,6 +245,7 @@ function updateWeightExample() {
 function readConfig() {
   const next={};
   for (const key of numericFields) next[key]=readNumber(key);
+  next.geometry=$('geometry').value;next.blocked=$('blocked').value;next.seedEdges=draftEdges;
   next.sequence=$('sequence').value; next.metric=$('metric').value;
   next.digitWeights=next.metric==='weighted'?readDigitWeights():[...config.digitWeights];
   next.actions=[...$('rule-rows').querySelectorAll('select')].map(s=>s.value);
@@ -241,7 +253,8 @@ function readConfig() {
   return validateConfig(next);
 }
 function writeConfig(c) {
-  for (const key of [...numericFields,'sequence','metric']) $(key).value=c[key];
+  for (const key of [...numericFields,'sequence','metric','geometry','blocked']) $(key).value=c[key];
+  draftEdges=c.seedEdges.map(e=>[...e]);updateEdgeControls();
   $('digit-field').hidden=c.metric!=='count'; $('weights-field').hidden=c.metric!=='weighted'; renderDigitWeights(c.digitWeights); renderRuleRows(c);
 }
 function updateSummary() {
@@ -257,15 +270,15 @@ function updateSummary() {
   refreshAppearance();
 }
 function updateInspector() {
-  const current=position>0&&position<config.count?position-1:-1;
+  const total=path?.count??config.count,current=position>0?Math.min(position-1,total-1):-1;
   $('current-step').textContent=current>=0?`Term ${number(position)} · ${actionLabels[describeStep(current,config).action]}`:position===0?'At the starting point':'Inspect the first eight terms';
   if (!$('inspector').open) return;
-  const start=current<0?0:Math.max(0,Math.min(current-3,config.count-8));
+  const start=current<0?0:Math.max(0,Math.min(current-3,total-8));
   $('sequence-cards').replaceChildren();
-  for (let i=start; i<Math.min(start+8,config.count); i++) {
+  for (let i=start; i<Math.min(start+8,total); i++) {
     const step=describeStep(i,config), card=document.createElement('div');
     card.className=`sequence-card ${step.action.includes('F')?'':'turn'} ${i===current?'current':''}`;
-    for (const [className,text] of [['decimal',`value ${step.n}`],['digits',step.digits],['calculation',`${metricLabels[config.metric]} ${step.value} · r ${step.remainder}`],['action',actionLabels[step.action]]]) {
+    for (const [className,text] of [['decimal',`value ${step.n}`],['digits',step.digits],['calculation',`${metricLabels[config.metric]} ${step.value} · r ${step.remainder}`],['action',actionLabels[step.action]+(path?.outcomes?' → '+outcomeLabel(i):'')]]) {
       const element=document.createElement('span'); element.className=className; element.textContent=text;
       if (className==='digits') element.title=`${step.digits} in base ${config.base}`;
       if (className==='decimal') element.title=`Term ${i+1}: decimal ${step.n}`;
@@ -276,12 +289,12 @@ function updateInspector() {
   $('inspector-note').textContent=`Start: (0, 0), heading ${config.initialHeading}°. Defaults: ${config.stepLength} unit steps, ${config.angle}° turns. Combined actions turn before moving.`;
 }
 function setBusy(value) {
-  busy=value; $('play').disabled=value||!path; $('progress').disabled=value||!path; $('export-image').disabled=value||!path;
+  busy=value; $('play').disabled=value||!path||path.count===0; $('progress').disabled=value||!path||path.count===0; $('export-image').disabled=value||!path;
   $('step-back').disabled=value||!path||position===0; $('step-forward').disabled=value||!path||position===path?.count;
   $('update-state').textContent=value?'Drawing…':'Up to date';
   $('drawing').setAttribute('aria-busy',String(value));
 }
-function regenerate(input) {
+function regenerate(input,preserveView=false) {
   const next=validateConfig(input);
   stopPlayback(); worker?.terminate(); pendingReject?.(new Error('Replaced by a newer drawing.')); pendingReject=null;
   const id=++generation;
@@ -303,8 +316,8 @@ function regenerate(input) {
       $('progress').max=path.count; setPosition(path.count); stopPlayback(); updateSummary();
       $('extent').textContent=`${number(path.bounds.maxX-path.bounds.minX)} × ${number(path.bounds.maxY-path.bounds.minY)} units`;
       $('generation-status').hidden=path.segments>0;
-      if (!path.segments) $('generation-status').textContent='Only turns or pauses. Choose a forward action to draw.';
-      if (appearance.autoFit||id===1) fit(); else queueRender();
+      if (!path.segments) $('generation-status').textContent=config.geometry==='edge'?(path.stopReason==='trap'?'All six edges at the origin are marked.':path.stationaryCertificate?'Movement is locked by the rule and initial marks. Instructions can still turn the turtle.':'No successful moves in this prefix. Inspect the instructions or edit initial edges.'):'Only turns or pauses. Choose a forward action to draw.';
+      if (!preserveView&&(appearance.autoFit||id===1)) fit(); else queueRender();
       requestAnimationFrame(()=>resolve(readState()));
     };
     worker.postMessage(next);
@@ -314,11 +327,53 @@ function fromForm() {
   try { regenerate(readConfig()).catch(()=>{}); } catch (error) { showError(`${error.message} Showing the last valid drawing.`); }
 }
 function scheduleUpdate(event) {
+  if(event.target.closest('#seed-controls'))return;
+  if(event.target.id==='geometry')updateEdgeControls();
   if (event.target.id==='modulus') renderRuleRows();
   if (event.target.id==='metric') { $('digit-field').hidden=$('metric').value!=='count'; $('weights-field').hidden=$('metric').value!=='weighted'; }
   if (event.target.id==='base') renderDigitWeights();
   updateRuleInputs(); $('preset').value='custom'; clearTimeout(debounce); debounce=setTimeout(fromForm,220);
 }
+function updateEdgeControls(){
+  const enabled=$('geometry').value==='edge';$('edge-controls').hidden=!enabled;
+  $('seed-count').textContent=String(draftEdges.length);
+  if(!enabled){editingEdges=false;$('edit-edges').checked=false;}
+  canvas.classList.toggle('editing-edges',editingEdges);queueRender();
+}
+function outcomeLabel(i){
+  if(!path?.outcomes||i>=path.count)return '';
+  return path.outcomes[i]===1?(path.searches[i]?`searched ${path.searches[i]} directions, moved`:'moved'):path.outcomes[i]===2?'blocked, stayed':path.outcomes[i]===3?'turned':'paused';
+}
+function updateEdgeStatus(){
+  const enabled=config.geometry==='edge'&&path?.outcomes;$('edge-status').hidden=!enabled;if(!enabled)return;
+  const locked=path.stationaryCertificate&&position>=path.stationaryCertificate.fromTerm;
+  const terminal=locked?`Movement locked from term ${number(path.stationaryCertificate.fromTerm)} · instructions continue`:position===path.count?(path.stopReason==='trap'?`Trapped after ${number(path.count)} terms`:`Term limit reached (${number(path.requestedCount)}) · no trap observed`):`Replay term ${number(position)}`;
+  const mask=path.incidentMasks[position],degree=mask.toString(2).replaceAll('0','').length;
+  $('edge-status').textContent=`${terminal} · ${number(path.uniquePrefix[position])} visited ${path.uniquePrefix[position]===1?'vertex':'vertices'} · ${number(path.blockedPrefix[position])} blocked requests · ${degree}/6 marked at the turtle`;
+}
+function drawInitialEdges(){
+  const line=(q,r,d)=>{const [dq,dr]=DIRECTIONS[d];ctx.moveTo(q+r/2,-r*Math.sqrt(3)/2);ctx.lineTo(q+dq+(r+dr)/2,-(r+dr)*Math.sqrt(3)/2);};
+  if(editingEdges&&view.scale>=14){
+    const r0=Math.floor((view.y-height/(2*view.scale))/(Math.sqrt(3)/2))-1,r1=Math.ceil((view.y+height/(2*view.scale))/(Math.sqrt(3)/2))+1;
+    ctx.beginPath();
+    for(let r=r0;r<=r1;r++){const q0=Math.floor(view.x-width/(2*view.scale)-r/2)-1,q1=Math.ceil(view.x+width/(2*view.scale)-r/2)+1;for(let q=q0;q<=q1;q++)for(let d=0;d<3;d++)line(q,r,d);}
+    ctx.strokeStyle=appearance.background==='paper'?'#cad5ce':'#233932';ctx.lineWidth=.6/view.scale;ctx.stroke();
+  }
+  ctx.beginPath();for(const edge of config.seedEdges)line(...edge);ctx.strokeStyle=appearance.background==='paper'?'#b64d05':'#ffae64';ctx.lineWidth=3/view.scale;ctx.stroke();
+  if(appearance.trapSites){ctx.beginPath();for(const [q,r] of trapCandidates(config.seedEdges)){ctx.moveTo(q+r/2+7/view.scale,-r*Math.sqrt(3)/2);ctx.arc(q+r/2,-r*Math.sqrt(3)/2,7/view.scale,0,Math.PI*2);}ctx.strokeStyle=appearance.background==='paper'?'#8c2678':'#f4a9e3';ctx.lineWidth=1.5/view.scale;ctx.stroke();}
+  ctx.lineWidth=appearance.lineWidth/view.scale;
+}
+function replaceSeeds(edges){
+  try{const next=validateConfig({...readConfig(),seedEdges:edges});draftEdges=next.seedEdges;updateEdgeControls();clearTimeout(debounce);$('preset').value='custom';regenerate(next,true).catch(()=>{});}catch(error){toast(error.message);}
+}
+function toggleSeed(edge){
+  try{const value=canonicalEdge(...edge),key=value.join(','),exists=draftEdges.some(e=>e.join(',')===key);replaceSeeds(exists?draftEdges.filter(e=>e.join(',')!==key):[...draftEdges,value]);}catch(error){toast(error.message);}
+}
+$('edit-edges').addEventListener('change',()=>{editingEdges=$('edit-edges').checked;if(editingEdges){stopPlayback();view={x:0,y:0,scale:40};}updateEdgeControls();});
+$('toggle-edge').addEventListener('click',()=>toggleSeed([readNumber('seed-q'),readNumber('seed-r'),readNumber('seed-d')]));
+$('clear-edges').addEventListener('click',()=>replaceSeeds([]));
+$('cage-edges').addEventListener('click',()=>{try{replaceSeeds(cageEdges(readNumber('seed-radius')));}catch(error){toast(error.message);}});
+$('random-edges').addEventListener('click',()=>{try{replaceSeeds(randomEdges(readNumber('random-seed'),readNumber('seed-radius'),readNumber('random-count')));}catch(error){toast(error.message);}});
 $('settings').addEventListener('input',scheduleUpdate);
 for (const button of document.querySelectorAll('[data-weights]')) button.addEventListener('click',()=>{
   renderDigitWeights(Array.from({length:36},(_,digit)=>button.dataset.weights==='ones'?1:button.dataset.weights==='zeros'?0:digit));
@@ -331,7 +386,7 @@ for (const button of document.querySelectorAll('[data-count],button[data-angle]'
   $(button.dataset.count?'count':'angle').value=button.dataset.count??button.dataset.angle;
   $('preset').value='custom'; updateRuleInputs(); clearTimeout(debounce); fromForm();
 });
-for (const id of ['palette','color-mode','line-width','solid-color','background','grid','markers','auto-fit','speed']) $(id).addEventListener('input',()=>{
+for (const id of ['palette','color-mode','line-width','solid-color','background','grid','markers','auto-fit','trap-sites','speed']) $(id).addEventListener('input',()=>{
   const oldMode=appearance.colorMode;
   appearance=readAppearance();
   if (oldMode!==appearance.colorMode) cachedPaths=null;
@@ -389,10 +444,11 @@ function zoom(factor,x=width/2,y=height/2) {
 }
 $('zoom-in').addEventListener('click',()=>zoom(1.5)); $('zoom-out').addEventListener('click',()=>zoom(1/1.5));
 canvas.addEventListener('wheel',event=>{event.preventDefault();const rect=canvas.getBoundingClientRect();zoom(Math.exp(-Math.max(-200,Math.min(200,event.deltaY))*.004),event.clientX-rect.left,event.clientY-rect.top);},{passive:false});
-const pointers=new Map(); let pinch=null;
-canvas.addEventListener('pointerdown',event=>{if(event.button!==0)return;canvas.setPointerCapture(event.pointerId);pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});canvas.classList.add('dragging');pinch=null;});
+const pointers=new Map(); let pinch=null,editClick=null;
+canvas.addEventListener('pointerdown',event=>{if(event.button!==0)return;canvas.setPointerCapture(event.pointerId);pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});editClick=editingEdges&&pointers.size===1?{id:event.pointerId,x:event.clientX,y:event.clientY}:null;canvas.classList.add('dragging');pinch=null;});
 canvas.addEventListener('pointermove',event=>{
   const previous=pointers.get(event.pointerId); if(!previous)return;
+  if(editClick&&Math.hypot(event.clientX-editClick.x,event.clientY-editClick.y)>5)editClick=null;
   if(pointers.size===1){view.x-=(event.clientX-previous.x)/view.scale;view.y+=(event.clientY-previous.y)/view.scale;}
   pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
   if(pointers.size===2){
@@ -402,9 +458,14 @@ canvas.addEventListener('pointermove',event=>{
   }
   queueRender();
 });
-function finishPointer(event){pointers.delete(event.pointerId);pinch=null;if(!pointers.size)canvas.classList.remove('dragging');}
+function finishPointer(event){
+  if(event.type==='pointerup'&&editClick?.id===event.pointerId&&pointers.size===1){
+    if(view.scale<14)toast('Zoom in to edit individual edges.');
+    else {const rect=canvas.getBoundingClientRect(),x=(event.clientX-rect.left-width/2)/view.scale+view.x,y=-(event.clientY-rect.top-height/2)/view.scale+view.y;const edge=nearestEdge(x,y,Math.min(.25,10/view.scale));if(edge)toggleSeed(edge);}
+  }
+  editClick=null;pointers.delete(event.pointerId);pinch=null;if(!pointers.size)canvas.classList.remove('dragging');}
 for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,finishPointer);
-canvas.addEventListener('dblclick',fit);
+canvas.addEventListener('dblclick',()=>{if(!editingEdges)fit();});
 canvas.addEventListener('keydown',event=>{
   if(event.key.toLowerCase()==='f'){event.preventDefault();fit();}
   else if(event.key===' '){event.preventDefault();togglePlay();}
@@ -422,14 +483,15 @@ function refreshSavedList() {
 function readSavedSetups() {
   try {
     const raw=localStorage.getItem(storageKey);
-    if(raw){if(raw.length>131072)throw new Error();const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>12)throw new Error();setups=data.map(validateSetup);}
+    if(raw){if(raw.length>1048576)throw new Error();const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>12)throw new Error();setups=data.map(validateSetup);}
   } catch {setups=[];toast('Saved setups could not be read. You can still import a JSON setup.');}
   refreshSavedList();
 }
 function saveStored(next) {
-  localStorage.setItem(storageKey,JSON.stringify(next)); setups=next; refreshSavedList();
+  const json=JSON.stringify(next);if(json.length>1048576)throw new Error('Saved setups exceed the browser library limit. Download a JSON setup instead.');
+  localStorage.setItem(storageKey,json); setups=next; refreshSavedList();
 }
-function currentSetup() { return validateSetup({version:1,name:$('setup-name').value,config:readConfig(),appearance:readAppearance()}); }
+function currentSetup() { return validateSetup({version:2,name:$('setup-name').value,config:readConfig(),appearance:readAppearance()}); }
 function applySetup(setup) {
   const valid=validateSetup(setup); clearTimeout(debounce); $('preset').value='custom'; $('setup-name').value=valid.name;
   writeConfig(valid.config); writeAppearance(valid.appearance);
@@ -461,11 +523,11 @@ $('export-image').addEventListener('click',()=>{
   context.fillStyle={midnight:'#0b1116',ink:'#000000',paper:'#edf1ef'}[appearance.background];context.fillRect(0,0,output.width,output.height);context.drawImage(canvas,0,0);
   output.toBlob(blob=>{if(blob){download(blob,'turtle-lab.png');toast('PNG download requested with the current view and background.');}else toast('The image could not be created.');},'image/png');
 });
-function readState(){return {config:{...config,actions:[...config.actions],ruleAngles:[...config.ruleAngles],ruleSteps:[...config.ruleSteps],digitWeights:[...config.digitWeights]},appearance:{...appearance},segments:path?.segments??0,turns:path?.turns??0,bounds:path?.bounds??null,visibleTerms:position,busy};}
+function readState(){return {config:{...config,actions:[...config.actions],ruleAngles:[...config.ruleAngles],ruleSteps:[...config.ruleSteps],digitWeights:[...config.digitWeights],seedEdges:config.seedEdges.map(e=>[...e])},stopReason:path?.stopReason??null,consumedTerms:path?.count??0,stationaryCertificate:path?.stationaryCertificate??null,blocked:path?.blocked??0,uniqueVertices:path?.unique??null,appearance:{...appearance},segments:path?.segments??0,turns:path?.turns??0,bounds:path?.bounds??null,visibleTerms:position,busy};}
 function registerTools(){
   if(!document.modelContext?.registerTool)return;
   const lifecycle=new AbortController();window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
-  const properties={base:{type:'integer',minimum:2,maximum:36},count:{type:'integer',minimum:1,maximum:1000000},start:{type:'integer',minimum:0},stride:{type:'integer',minimum:1,maximum:1000000},sequence:{enum:['integers','squares','triangular']},metric:{enum:['sum','weighted','last','nonzero','count']},digitWeights:{type:'array',items:{type:'integer',minimum:-1000000,maximum:1000000},minItems:2,maxItems:36},digit:{type:'integer',minimum:0,maximum:35},modulus:{type:'integer',minimum:2,maximum:8},angle:{type:'number',minimum:0,maximum:360},initialHeading:{type:'number',minimum:0,maximum:360},stepLength:{type:'number',minimum:0.01,maximum:1000},actions:{type:'array',items:{enum:Object.keys(ACTIONS)},minItems:2,maxItems:8},ruleAngles:{type:'array',items:{type:['number','null'],minimum:0,maximum:360},minItems:2,maxItems:8},ruleSteps:{type:'array',items:{type:['number','null'],minimum:0,maximum:1000},minItems:2,maxItems:8}};
+  const properties={geometry:{enum:['free','edge']},blocked:{enum:['stay','turn']},seedEdges:{type:'array',maxItems:512,items:{type:'array',minItems:3,maxItems:3,items:{type:'integer'}}},base:{type:'integer',minimum:2,maximum:36},count:{type:'integer',minimum:1,maximum:1000000},start:{type:'integer',minimum:0},stride:{type:'integer',minimum:1,maximum:1000000},sequence:{enum:['integers','squares','triangular']},metric:{enum:['sum','weighted','last','nonzero','count']},digitWeights:{type:'array',items:{type:'integer',minimum:-1000000,maximum:1000000},minItems:2,maxItems:36},digit:{type:'integer',minimum:0,maximum:35},modulus:{type:'integer',minimum:2,maximum:8},angle:{type:'number',minimum:0,maximum:360},initialHeading:{type:'number',minimum:0,maximum:360},stepLength:{type:'number',minimum:0.01,maximum:1000},actions:{type:'array',items:{enum:Object.keys(ACTIONS)},minItems:2,maxItems:8},ruleAngles:{type:'array',items:{type:['number','null'],minimum:0,maximum:360},minItems:2,maxItems:8},ruleSteps:{type:'array',items:{type:['number','null'],minimum:0,maximum:1000},minItems:2,maxItems:8}};
   const tools=[{name:'read_turtle_experiment',title:'Read turtle experiment',description:'Read the current completed experiment, appearance, bounds, playback position, and loading state.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:readState},
     {name:'configure_turtle_experiment',title:'Configure turtle experiment',description:'Change turtle rules and generate the visible drawing. When changing modulus, supply matching actions and optional angle/distance arrays.',inputSchema:{type:'object',properties,additionalProperties:false},annotations:{readOnlyHint:false},execute:async input=>{
       if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!Object.hasOwn(properties,key)))throw new Error('Use supported experiment settings.');

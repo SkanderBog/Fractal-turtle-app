@@ -1,6 +1,6 @@
 # Alpha distribution
 
-Version 1.2.0-alpha.1 provides portable bundles. These are browser apps with a bundled Python launcher, not Electron applications or system installers. Extract the complete archive; keep its executable and `_internal` folder together. The app works offline after download.
+Version 1.3.0-alpha.1 provides portable bundles. These are browser apps with a bundled Python launcher, not Electron applications or system installers. Extract the complete archive; keep its executable and `_internal` folder together. The app works offline after download.
 
 | Archive target | Native build and smoke-test host | Target |
 | --- | --- | --- |
@@ -9,7 +9,7 @@ Version 1.2.0-alpha.1 provides portable bundles. These are browser apps with a b
 | macos-arm64 | macOS 14 Apple Silicon | macOS 14+ Apple Silicon |
 | macos-x64 | macOS 15 Intel | macOS 15+ Intel |
 
-Each build runs all source tests, audits the installed build packages using pip-audit, builds with pinned PyInstaller, extracts the archive into a directory containing spaces, verifies every file against MANIFEST.json, starts the actual bundled executable, and checks all seven exact app assets plus security headers, traversal blocking, hostile hosts, unsupported writes, and HEAD responses. These checks exercise native executable startup and serving; they do not simulate a graphical browser on every operating system.
+Each build runs all source tests, audits the installed build packages using pip-audit, builds with pinned PyInstaller, extracts the archive into a directory containing spaces, verifies every file against MANIFEST.json, starts the actual bundled executable, and checks all eight exact app assets plus security headers, traversal blocking, hostile hosts, unsupported writes, and HEAD responses. These checks exercise native executable startup and serving; they do not simulate a graphical browser on every operating system.
 
 Packages are unsigned; Mac packages are not notarized. SmartScreen or Gatekeeper may prevent a launch. Physical-device GUI launch, OS security prompts, browser downloads, and broad distribution compatibility remain alpha-testing tasks. Follow local software policy. Running the source with an installed Python is an alternative.
 
@@ -23,7 +23,7 @@ On each native target OS with Python 3.14.7 and Node.js 22:
 python -m pip install -r packaging/requirements-build.txt
 python packaging/audit.py
 python packaging/build.py --target linux-x64
-python packaging/smoke.py release-dist/TurtleLab-1.2.0-alpha.1-linux-x64.tar.gz
+python packaging/smoke.py release-dist/TurtleLab-1.3.0-alpha.1-linux-x64.tar.gz
 ```
 
 Substitute the target and archive filename for Windows or macOS. The build refuses an OS/architecture or Python-version mismatch. PyInstaller's entry point and data directory are explicit; it does not copy the repository wholesale. Python, PyInstaller, and its dependencies are pinned. Every archive contains START_HERE.md, BUILD-INFO.json (source commit, exact Python and dependency versions), MANIFEST.json, and third-party notices. The build environment is recorded but archives are not claimed to be bit-for-bit reproducible. Publication uses only artifacts from the tested source commit and a SHA256SUMS file.

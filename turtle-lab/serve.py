@@ -9,6 +9,7 @@ PUBLIC_FILES = {
     'index.html': 'text/html; charset=utf-8',
     'style.css': 'text/css; charset=utf-8',
     'app.mjs': 'text/javascript; charset=utf-8',
+    'edge.mjs': 'text/javascript; charset=utf-8',
     'core.mjs': 'text/javascript; charset=utf-8',
     'worker.mjs': 'text/javascript; charset=utf-8',
     'setup.mjs': 'text/javascript; charset=utf-8',

@@ -33,3 +33,12 @@ Verified the updated app with its secured server:
 PNG/JSON export controls dispatch their downloads. The embedded browser did not expose a completed download event, so saved-file delivery was not independently confirmed there; use a regular browser if the embedded browser does not surface downloads. Setup serialization and restoration are covered by automated tests.
 
 The tests cover the stated cases. They do not prove fractality or rule out all possible security vulnerabilities.
+
+
+## Edge-mode feature verification (2026-09-29)
+
+Version 1.3.0-alpha.1 adds an independent integer edge engine and seed tools. The original free-geometry tests remain unchanged. Eight new test groups include 160 endpoint-set reference comparisons over both blocked policies, variable bases/sequences/actions, seed reversal, early and zero-instruction traps, exact-cutoff traps, movement-lock invariants, legacy setup migration, maximum-size imports, deterministic random marks, cage boundaries, and canvas hit testing. Together with the existing tests, there are 51 source test cases.
+
+Browser checks exercised the four-residue preset (13,066-term trap), manual editing of a previously traversed edge, generated cages, zero-term traps, replay of moved/turned/blocked instructions, the 180° single-edge movement lock, collision coloring, trap candidates, seeded version-2 JSON import, and browser save/reset/load. The imported seed and appearance were read back through the app's public interface. A one-million-term generation followed immediately by Reset checks cancellation. The temporary saved test setup was removed. Both the narrow stacked layout and desktop canvas were inspected.
+
+Native packaging retains the entire served `dist/` directory and checks `edge.mjs` in the extracted-archive smoke test. Platform package results are reported by the GitHub Actions run for the feature commit; local source checks do not substitute for those platform checks. No research measurements, reports, or result datasets are bundled in this app.

@@ -51,7 +51,7 @@ def main():
                 connection.close()
                 return result
 
-            for asset in ['index.html','style.css','app.mjs','core.mjs','worker.mjs','setup.mjs','favicon.svg']:
+            for asset in ['index.html','style.css','app.mjs','core.mjs', 'edge.mjs','worker.mjs','setup.mjs','favicon.svg']:
                 status, headers, body = request('/'+asset)
                 assert status == 200 and body, asset
                 assert "connect-src 'none'" in headers['Content-Security-Policy']

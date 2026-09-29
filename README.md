@@ -28,13 +28,15 @@ Opening the HTML directly as a file is not supported because the app uses a modu
 - Integer, square, and triangular sequences; bases 2–36; adjustable starting index, interval, and up to **1,000,000 terms**.
 - Digit sum, **sum of custom digit weights**, last digit, nonzero-digit count, or occurrences of a chosen digit. Set a signed integer weight for every digit, with shortcuts for digit values, all ones, and all zeros.
 - An independent action for every remainder: forward, left, right, turn then forward, or pause.
+- **Edge-avoiding mode** on the triangular lattice, with stay/search policies, editable initial edges, reproducible random marks, and hexagon cages.
+- Replay distinguishes traps, cutoffs, and invariant-certified movement locks; inspect blocked requests, unique vertices, search turns, and possible trap sites.
 - Default angle and distance, starting direction, and optional **per-rule angle and distance overrides**.
 - Colors by sequence position, movement direction, remainder, or a solid color. Four palettes, three backgrounds, line weight, grid, and marker controls.
 - Automatic fit, pan, zoom, touch pinch, playback speed, and exact single-term stepping.
 - An expandable explanation of the numbers and instructions behind the current path.
 - Save up to 12 named setups in this browser, import/export JSON, and export the current drawing view as PNG.
 
-See [the app guide](turtle-lab/README.md) for rule details and keyboard controls. Saved setups are local to your browser and origin, including the port; export JSON to transfer or back them up. PNG export includes the selected background and visible path/markers, not the editor's dot grid.
+See [the app guide](turtle-lab/README.md) for rule details and keyboard controls. Saved setups are local to your browser and origin, including the port; export JSON to transfer or back them up. PNG export includes the selected background, path, initial edges and visible markers. The lattice guide is included when edge editing is enabled; the CSS dot grid is not.
 
 A finite picture does not establish that its infinite limit is a fractal. The app generates finite paths and fits their complete bounds without changing their mathematical coordinates.
 
@@ -49,7 +51,7 @@ npm test
 npm run test:server
 ```
 
-There are **43 automated tests**, including independent randomized geometry comparisons, weighted rules across all 35 bases, a million-term sequence, malformed or hostile setup inputs, HTTP server security checks, and launcher behavior. GitHub Actions runs these checks with read-only repository permissions and pinned actions. Native package builds additionally audit build dependencies, verify bundle hashes, and smoke-test the extracted executable on each target OS.
+There are **51 automated tests**, including independent randomized geometry comparisons, weighted rules across all 35 bases, a million-term sequence, malformed or hostile setup inputs, HTTP server security checks, and launcher behavior. GitHub Actions runs these checks with read-only repository permissions and pinned actions. Native package builds additionally audit build dependencies, verify bundle hashes, and smoke-test the extracted executable on each target OS.
 
 See [verification details](turtle-lab/VERIFICATION.md) and [security notes](SECURITY.md). These are targeted regression checks, not a guarantee that every possible vulnerability has been excluded.
 
@@ -57,6 +59,7 @@ See [verification details](turtle-lab/VERIFICATION.md) and [security notes](SECU
 
 - `turtle-lab/dist/`: directly served HTML, CSS, and JavaScript modules; no build step.
 - `core.mjs`: validated number rules and turtle geometry.
+- `edge.mjs`: exact axial edge memory, seed tools, and movement-lock certificates.
 - `worker.mjs`: cancellable background geometry generation.
 - `setup.mjs`: strict configuration and JSON-file validation.
 - `app.mjs`: editor, renderer, saved setups, and browser interactions.

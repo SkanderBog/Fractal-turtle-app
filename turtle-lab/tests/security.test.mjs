@@ -53,7 +53,7 @@ test('setup names are bounded plain text, never interpreted as HTML',()=>{
   for(const name of ['', ' '.repeat(5),'x'.repeat(61),'bad\nname']){const data=setup();data.name=name;assert.throws(()=>parseSetup(JSON.stringify(data)));}
 });
 test('unsupported setup versions and missing required data are rejected',()=>{
-  for(const patch of [{version:0},{version:2},{version:'1'},{config:null},{appearance:null},{name:42}])assert.throws(()=>parseSetup(JSON.stringify({...setup(),...patch})));
+  for(const patch of [{version:0},{version:3},{version:'1'},{config:null},{appearance:null},{name:42}])assert.throws(()=>parseSetup(JSON.stringify({...setup(),...patch})));
 });
 test('application sources have no script evaluation, HTML injection sinks, or external dependencies',()=>{
   const root=new URL('../dist/',import.meta.url);

@@ -1,3 +1,4 @@
+import {generateEdgePath,validateEdges} from './edge.mjs';
 export const ACTIONS = {
   F: 'Forward', L: 'Turn left', R: 'Turn right',
   LF: 'Left + forward', RF: 'Right + forward', N: 'Do nothing',
@@ -6,7 +7,7 @@ export const DEFAULTS = Object.freeze({
   base: 2, start: 0, stride: 1, count: 16384, sequence: 'integers',
   metric: 'sum', digit: 1, modulus: 2, angle: 60, actions: ['F', 'L'],
   initialHeading: 0, stepLength: 1, ruleAngles: null, ruleSteps: null,
-  digitWeights: null,
+  digitWeights: null, geometry: 'free', blocked: 'stay', seedEdges: Object.freeze([]),
 });
 export function numberAt(index, c) {
   const n = c.start + index * c.stride;
@@ -39,6 +40,15 @@ export function validateConfig(input) {
     c[key] = [...c[key]];
   }
   if (!Number.isSafeInteger(c.start + (c.count - 1) * c.stride) || !Number.isSafeInteger(numberAt(c.count - 1,c))) throw new Error('This sequence exceeds exact integer precision. Reduce its start, interval, or length.');
+  if (!['free','edge'].includes(c.geometry) || !['stay','turn'].includes(c.blocked)) throw new Error('Choose a supported geometry and blocked-edge policy.');
+  c.seedEdges = validateEdges(c.seedEdges);
+  if (c.geometry === 'edge') {
+    if (c.initialHeading % 60 !== 0) throw new Error('Edge mode needs a starting direction in multiples of 60°.');
+    for (let i=0;i<c.modulus;i++) {
+      if ((c.actions[i].includes('L')||c.actions[i].includes('R')) && (c.ruleAngles[i]??c.angle)%60!==0) throw new Error('Edge mode needs turns in multiples of 60°.');
+      if (c.actions[i].includes('F') && (c.ruleSteps[i]??c.stepLength)!==1) throw new Error('Edge mode needs unit steps. Set each forward distance to 1 or leave it blank with a default of 1.');
+    }
+  }
   return c;
 }
 export function digitValue(n, base, metric = 'sum', digit = 1, weights = null) {
@@ -60,6 +70,7 @@ export function describeStep(index, c) {
 }
 export function generatePath(input) {
   const c = validateConfig(input);
+  if (c.geometry === 'edge') return generateEdgePath(c,i=>ruleRemainder(digitValue(numberAt(i,c),c.base,c.metric,c.digit,c.digitWeights),c.modulus));
   const points = new Float64Array((c.count + 1) * 2);
   const steps = new Uint32Array(c.count);
   const headings = new Float64Array(c.count + 1);
