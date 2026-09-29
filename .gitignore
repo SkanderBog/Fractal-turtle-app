@@ -1,0 +1,16 @@
+# Local hosting identity and agent metadata
+.openai/
+**/.openai/
+.codex/
+.agents/
+# Local dependencies, reports and user exports
+node_modules/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.log
+.DS_Store
+coverage/
+test-results/
+playwright-report/

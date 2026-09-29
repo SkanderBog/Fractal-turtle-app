@@ -1,0 +1,14 @@
+{
+  "name": "fractal-turtle-app",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A dependency-free playground for number-driven turtle paths",
+  "scripts": {
+    "start": "python3 serve.py",
+    "test": "node --test tests/*.test.mjs",
+    "test:server": "python3 -m unittest discover -s tests -p 'test_*.py' -v",
+    "check": "node --check dist/app.mjs && node --check dist/core.mjs && node --check dist/setup.mjs && node --check dist/worker.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
