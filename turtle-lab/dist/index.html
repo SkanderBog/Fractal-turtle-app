@@ -1,95 +1,95 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; worker-src 'self'; img-src 'self' data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="no-referrer">
-  <title>Turtle Lab — patterns from numbers</title>
-  <meta name="description" content="Explore number-driven turtle paths with customizable rules, colorful drawings, and saved experiments.">
+  <title>海龟实验室：从数字到图案</title>
+  <meta name="description" content="用可定制规则探索数字驱动的海龟轨迹，调整配色并保存实验。">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.mjs"></script>
 </head>
 <body>
-  <a href="#drawing" class="skip-link">Skip to drawing</a>
+  <a href="#drawing" class="skip-link">跳到绘图</a>
   <header class="app-header">
-    <a class="brand" href="./" aria-label="Turtle Lab home"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 25 16 7 26 25H6l5-9h10"/></svg>Turtle Lab<span>.</span></a>
-    <span class="header-caption">A playground for patterns</span>
-    <div class="header-actions"><button id="toggle-settings" aria-expanded="true" aria-controls="controls">Hide settings</button><button id="export-image">Save PNG</button></div>
+    <a class="brand" href="./" aria-label="海龟实验室首页"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 25 16 7 26 25H6l5-9h10"/></svg>海龟实验室<span>.</span></a>
+    <span class="header-caption">探索数字与图形</span>
+    <div class="header-actions"><button id="toggle-settings" aria-expanded="true" aria-controls="controls">隐藏设置</button><button id="export-image">保存 PNG</button></div>
   </header>
   <main class="workspace" id="workspace">
-    <aside class="controls" id="controls" aria-label="Drawing settings">
-      <div class="panel-heading"><div><span class="eyebrow">YOUR EXPERIMENT</span><h1>Make a rule. Follow it.</h1></div><button id="reset" class="text-button" title="Restore the original experiment and appearance">Reset</button></div>
-      <label class="field preset-label">Explore a preset<select id="preset"><option value="original">Even steps, odd turns</option><option value="ternary">Ternary weave</option><option value="binary">Binary bends</option><option value="square">Square-number trail</option><option value="edge-quad">Edge trail · four remainders</option><option value="edge-m3">Edge trail · three remainders</option><option value="edge-parity">Edge trail · parity</option><option value="edge-koch">Edge trail · 120° turns</option><option value="custom" disabled>Custom experiment</option></select></label>
-      <div class="settings-tabs" role="tablist" aria-label="Customization sections"><button id="tab-sequence" role="tab" aria-selected="true" aria-controls="panel-sequence" data-tab="sequence">Sequence</button><button id="tab-rules" role="tab" aria-selected="false" aria-controls="panel-rules" data-tab="rules" tabindex="-1">Rules</button><button id="tab-style" role="tab" aria-selected="false" aria-controls="panel-style" data-tab="style" tabindex="-1">Style</button></div>
+    <aside class="controls" id="controls" aria-label="绘图设置">
+      <div class="panel-heading"><div><span class="eyebrow">你的实验</span><h1>设定规则，观察轨迹。</h1></div><button id="reset" class="text-button" title="恢复初始实验与外观">重置</button></div>
+      <label class="field preset-label">选择预设<select id="preset"><option value="original">偶数前进，奇数转向</option><option value="ternary">三进制交织</option><option value="binary">二进制折线</option><option value="square">平方数轨迹</option><option value="edge-quad">避边轨迹 · 四种余数</option><option value="edge-m3">避边轨迹 · 三种余数</option><option value="edge-parity">避边轨迹 · 奇偶规则</option><option value="edge-koch">避边轨迹 · 120° 转向</option><option value="custom" disabled>自定义实验</option></select></label>
+      <div class="settings-tabs" role="tablist" aria-label="设置分类"><button id="tab-sequence" role="tab" aria-selected="true" aria-controls="panel-sequence" data-tab="sequence">数列</button><button id="tab-rules" role="tab" aria-selected="false" aria-controls="panel-rules" data-tab="rules" tabindex="-1">规则</button><button id="tab-style" role="tab" aria-selected="false" aria-controls="panel-style" data-tab="style" tabindex="-1">外观</button></div>
       <div class="settings-body">
         <form id="settings" novalidate>
           <section id="panel-sequence" role="tabpanel" aria-labelledby="tab-sequence">
-            <h2>Give the turtle its numbers</h2><p class="section-note">Each number produces one instruction. Changes appear automatically.</p>
-            <label class="field">Sequence<select name="sequence" id="sequence"><option value="integers">Integers · n</option><option value="squares">Squares · n²</option><option value="triangular">Triangular · n(n + 1) / 2</option></select></label>
-            <div class="field-row"><label class="field">Number base<input id="base" type="number" min="2" max="36" value="2" step="1"></label><label class="field">Terms<input id="count" type="number" min="1" max="1000000" value="16384" step="1"></label></div>
-            <div class="count-shortcuts" aria-label="Quick sequence lengths"><button type="button" data-count="1024">1k</button><button type="button" data-count="16384">16k</button><button type="button" data-count="65536">65k</button><button type="button" data-count="262144">262k</button><button type="button" data-count="1000000">1m</button></div>
-            <div class="field-row"><label class="field">Start at n<input id="start" type="number" min="0" value="0" step="1"></label><label class="field">Increase n by<input id="stride" type="number" min="1" max="1000000" value="1" step="1"></label></div>
-            <div class="sequence-sample"><span class="eyebrow">NEXT NUMBERS · DECIMAL</span><p id="number-preview">0, 1, 2, 3, 4, 5…</p></div>
-            <details class="help-details"><summary>How does this work?</summary><p>The turtle reads each number in your chosen base, calculates a value from its digits, and uses the remainder to choose an action in the Rules tab.</p><p>For example, 3 in base 2 is 11. Its digit sum is 2, giving remainder 0 when divided by 2.</p><p>A finite pattern is not proof of a fractal. Try longer sequences to explore its structure.</p></details>
+            <h2>给海龟一串数字</h2><p class="section-note">每个数生成一条指令，修改后自动更新。</p>
+            <label class="field">数列<select name="sequence" id="sequence"><option value="integers">整数 · n</option><option value="squares">平方数 · n²</option><option value="triangular">三角数 · n(n + 1) / 2</option></select></label>
+            <div class="field-row"><label class="field">进制<input id="base" type="number" min="2" max="36" value="2" step="1"></label><label class="field">项数<input id="count" type="number" min="1" max="1000000" value="16384" step="1"></label></div>
+            <div class="count-shortcuts" aria-label="快捷项数"><button type="button" data-count="1024">1k</button><button type="button" data-count="16384">16k</button><button type="button" data-count="65536">65k</button><button type="button" data-count="262144">262k</button><button type="button" data-count="1000000">1m</button></div>
+            <div class="field-row"><label class="field">起始 n<input id="start" type="number" min="0" value="0" step="1"></label><label class="field">n 的增量<input id="stride" type="number" min="1" max="1000000" value="1" step="1"></label></div>
+            <div class="sequence-sample"><span class="eyebrow">接下来的数字 · 十进制</span><p id="number-preview">0, 1, 2, 3, 4, 5…</p></div>
+            <details class="help-details"><summary>它如何工作？</summary><p>海龟按选定进制读取每个数，用各位数字算出一个值，再根据余数执行“规则”页中的动作。</p><p>例如，十进制 3 的二进制写法是 11，各位数字之和为 2，除以 2 的余数为 0。</p><p>有限图案不能证明存在分形极限。可以增加项数，继续探索其结构。</p></details>
           </section>
           <section id="panel-rules" role="tabpanel" aria-labelledby="tab-rules" hidden>
-            <h2>Turn digits into movement</h2><p class="section-note">Left means counterclockwise. A turn alone does not move the turtle.</p>
-            <label class="field">Path model<select id="geometry"><option value="free">Free drawing · edges can be reused</option><option value="edge">Edge avoiding · triangular lattice</option></select></label>
+            <h2>把数字变成动作</h2><p class="section-note">左转表示逆时针；单独转向不会改变位置。</p>
+            <label class="field">轨迹模型<select id="geometry"><option value="free">自由绘图 · 允许重复走边</option><option value="edge">避边行走 · 三角格点</option></select></label>
             <div id="edge-controls" hidden>
-              <p class="field-note">Every traveled edge becomes forbidden in both directions. Use unit steps and turns in multiples of 60°.</p>
-              <label class="field">When the forward edge is marked<select id="blocked"><option value="stay">Stay · consume the instruction</option><option value="turn">Search counterclockwise · then move</option></select></label>
-              <details id="seed-controls" class="help-details"><summary>Initial marked edges <span id="seed-count">0</span></summary>
-                <p class="field-note">Orange edges are forbidden before the first instruction. Editing restarts the walk.</p>
-                <label class="check-field"><span>Edit edges on the canvas</span><input id="edit-edges" type="checkbox"></label>
-                <p class="field-note">Click near an edge to toggle it. Drag to pan. The editor opens near the origin.</p>
-                <div class="field-row"><label class="field">Axial q<input id="seed-q" type="number" min="-100000" max="100000" step="1" value="0"></label><label class="field">Axial r<input id="seed-r" type="number" min="-100000" max="100000" step="1" value="0"></label></div>
-                <label class="field">Direction<select id="seed-d"><option value="0">0 · east</option><option value="1">1 · northeast</option><option value="2">2 · northwest</option><option value="3">3 · west</option><option value="4">4 · southwest</option><option value="5">5 · southeast</option></select></label>
-                <div class="button-row"><button type="button" id="toggle-edge">Toggle this edge</button><button type="button" id="clear-edges">Clear initial edges</button></div>
-                <h3>Reproducible random marks</h3>
-                <label class="field">Random seed<input id="random-seed" type="number" min="0" max="4294967295" step="1" value="1"></label>
-                <div class="field-row"><label class="field">Hexagon radius<input id="seed-radius" type="number" min="1" max="20" step="1" value="3"></label><label class="field">Edge count<input id="random-count" type="number" min="0" max="512" step="1" value="3"></label></div>
-                <div class="button-row"><button type="button" id="random-edges">Replace with random marks</button><button type="button" id="cage-edges">Enclose this hexagon</button></div><p class="field-note">Enclose marks every edge crossing the hexagon boundary, keeping the turtle inside.</p>
-                <p class="field-note">Setups save the exact edge list. Maximum 512 initial edges.</p>
+              <p class="field-note">走过的边在两个方向上都永久禁用。步长须为 1，转角须为 60° 的整数倍。</p>
+              <label class="field">前方边已被标记时<select id="blocked"><option value="stay">原地等待 · 消耗本条指令</option><option value="turn">逆时针搜索 · 找到可用边后前进</option></select></label>
+              <details id="seed-controls" class="help-details"><summary>初始标记边 <span id="seed-count">0</span></summary>
+                <p class="field-note">橙色边在第一条指令之前即被禁用；编辑后重新计算轨迹。</p>
+                <label class="check-field"><span>在画布上编辑边</span><input id="edit-edges" type="checkbox"></label>
+                <p class="field-note">点击边附近可切换标记，拖动可平移；编辑视图从原点附近开始。</p>
+                <div class="field-row"><label class="field">轴坐标 q<input id="seed-q" type="number" min="-100000" max="100000" step="1" value="0"></label><label class="field">轴坐标 r<input id="seed-r" type="number" min="-100000" max="100000" step="1" value="0"></label></div>
+                <label class="field">方向<select id="seed-d"><option value="0">0 · 东</option><option value="1">1 · 东北</option><option value="2">2 · 西北</option><option value="3">3 · 西</option><option value="4">4 · 西南</option><option value="5">5 · 东南</option></select></label>
+                <div class="button-row"><button type="button" id="toggle-edge">切换此边标记</button><button type="button" id="clear-edges">清空初始标记</button></div>
+                <h3>可复现的随机标记</h3>
+                <label class="field">随机种子<input id="random-seed" type="number" min="0" max="4294967295" step="1" value="1"></label>
+                <div class="field-row"><label class="field">六边形半径<input id="seed-radius" type="number" min="1" max="20" step="1" value="3"></label><label class="field">边数<input id="random-count" type="number" min="0" max="512" step="1" value="3"></label></div>
+                <div class="button-row"><button type="button" id="random-edges">替换为随机标记</button><button type="button" id="cage-edges">封闭此六边形</button></div><p class="field-note">封闭操作标记所有跨越六边形边界的边，使海龟无法离开内部。</p>
+                <p class="field-note">配置保存精确边列表，最多允许 512 条初始边。</p>
               </details>
             </div>
-            <label class="field">For each number, calculate<select id="metric"><option value="sum">Sum of its digits</option><option value="weighted">Sum of digit weights</option><option value="last">Its last digit</option><option value="nonzero">Number of nonzero digits</option><option value="count">Occurrences of a digit</option></select></label>
-            <label class="field" id="digit-field" hidden>Digit to count (decimal value)<input id="digit" type="number" min="0" max="35" value="1"></label>
-            <section id="weights-field" class="weights-field" aria-label="Digit weights" hidden>
-              <h3>A weight for every digit</h3><p class="field-note">Add these weights instead of the digit values. Negative whole numbers are allowed.</p>
-              <div class="weight-shortcuts"><button type="button" data-weights="digits">Digit values</button><button type="button" data-weights="ones">All 1</button><button type="button" data-weights="zeros">All 0</button></div>
+            <label class="field">对每个数计算<select id="metric"><option value="sum">各位数字之和</option><option value="weighted">各位数字的权重之和</option><option value="last">末位数字</option><option value="nonzero">非零数字的个数</option><option value="count">指定数字的出现次数</option></select></label>
+            <label class="field" id="digit-field" hidden>要计数的数字（十进制值）<input id="digit" type="number" min="0" max="35" value="1"></label>
+            <section id="weights-field" class="weights-field" aria-label="数字权重" hidden>
+              <h3>为每个数字指定权重</h3><p class="field-note">将各位数字对应的权重相加，允许使用负整数。</p>
+              <div class="weight-shortcuts"><button type="button" data-weights="digits">使用数字本身</button><button type="button" data-weights="ones">全为 1</button><button type="button" data-weights="zeros">全为 0</button></div>
               <div id="weight-grid" class="weight-grid"></div><p id="weight-example" class="weight-example"></p>
-              <p class="field-note">Negative sums wrap into remainders 0 through divisor − 1. Hidden weights are kept when the base changes.</p>
+              <p class="field-note">负数和会映射到 0 至除数减 1 的余数范围。改变进制时保留暂时隐藏的权重。</p>
             </section>
-            <label class="modulus-field">Divide by, then take the remainder<input id="modulus" aria-label="Remainder divisor" type="number" min="2" max="8" value="2"></label>
-            <div class="field-row"><label class="field">Default turn (°)<input id="angle" type="number" min="0" max="360" step="any" value="60"></label><label class="field">Default step (units)<input id="stepLength" type="number" min="0.01" max="1000" step="any" value="1"></label></div>
-            <div class="angle-presets" aria-label="Quick turn angles"><button type="button" data-angle="30">30°</button><button type="button" data-angle="45">45°</button><button type="button" data-angle="60">60°</button><button type="button" data-angle="90">90°</button><button type="button" data-angle="120">120°</button></div>
-            <label class="field">Starting direction (°)<input id="initialHeading" type="number" min="0" max="360" step="any" value="0"><span class="field-note">0° faces right · 90° faces up</span></label>
-            <div class="rule-heading"><h3>Actions by remainder</h3><span>Blank values use defaults</span></div><div id="rule-rows" class="rule-rows"></div>
+            <label class="modulus-field">除以下列数，再取余数<input id="modulus" aria-label="取余除数" type="number" min="2" max="8" value="2"></label>
+            <div class="field-row"><label class="field">默认转角（°）<input id="angle" type="number" min="0" max="360" step="any" value="60"></label><label class="field">默认步长（单位）<input id="stepLength" type="number" min="0.01" max="1000" step="any" value="1"></label></div>
+            <div class="angle-presets" aria-label="快捷转角"><button type="button" data-angle="30">30°</button><button type="button" data-angle="45">45°</button><button type="button" data-angle="60">60°</button><button type="button" data-angle="90">90°</button><button type="button" data-angle="120">120°</button></div>
+            <label class="field">初始方向（°）<input id="initialHeading" type="number" min="0" max="360" step="any" value="0"><span class="field-note">0° 向右 · 90° 向上</span></label>
+            <div class="rule-heading"><h3>每种余数对应的动作</h3><span>留空则使用默认值</span></div><div id="rule-rows" class="rule-rows"></div>
           </section>
         </form>
         <section id="panel-style" role="tabpanel" aria-labelledby="tab-style" hidden>
-          <h2>Make the path your own</h2><p class="section-note">Change the look without regenerating the geometry.</p>
-          <label class="field">Color by<select id="color-mode"><option value="sequence">Position in the sequence</option><option value="direction">Direction of movement</option><option value="remainder">Rule remainder</option><option value="solid">One solid color</option><option value="collision">Unblocked / after edge search</option></select></label>
-          <label class="field" id="palette-field">Palette<select id="palette"><option value="spectrum">Spectrum</option><option value="lagoon">Lagoon</option><option value="ember">Ember</option><option value="ice">Ice</option></select></label>
-          <label class="field" id="solid-field" hidden>Line color<input id="solid-color" type="color" value="#9ef7c4"></label>
-          <label class="field"><span class="label-output">Line weight <output id="line-width-label">1.25 px</output></span><input id="line-width" aria-label="Line weight" type="range" min="0.5" max="6" step="0.25" value="1.25"></label>
-          <label class="field">Canvas background<select id="background"><option value="midnight">Midnight</option><option value="ink">Black</option><option value="paper">Paper</option></select></label>
-          <div class="toggle-list"><label class="check-field"><span>Show the dot grid</span><input id="grid" type="checkbox" checked></label><label class="check-field"><span>Show start and turtle markers</span><input id="markers" type="checkbox" checked></label><label class="check-field"><span>Show possible trap sites (edge mode)</span><input id="trap-sites" type="checkbox"></label><label class="check-field"><span>Auto-fit on changes</span><input id="auto-fit" type="checkbox" checked></label></div>
-          <p class="field-note">Pink rings mark possible trap sites from initial-edge parity. A ring does not guarantee a trap.</p><p class="field-note">Fit changes the view, never the coordinates. Drag the drawing to pan; use the scroll wheel or + / − to zoom.</p>
+          <h2>调整轨迹外观</h2><p class="section-note">外观修改无需重新计算几何轨迹。</p>
+          <label class="field">着色依据<select id="color-mode"><option value="sequence">数列中的位置</option><option value="direction">移动方向</option><option value="remainder">规则余数</option><option value="solid">单一颜色</option><option value="collision">直接通过／搜索后通过</option></select></label>
+          <label class="field" id="palette-field">配色<select id="palette"><option value="spectrum">光谱</option><option value="lagoon">湖水</option><option value="ember">余烬</option><option value="ice">冰蓝</option></select></label>
+          <label class="field" id="solid-field" hidden>线条颜色<input id="solid-color" type="color" value="#9ef7c4"></label>
+          <label class="field"><span class="label-output">线宽 <output id="line-width-label">1.25 px</output></span><input id="line-width" aria-label="线宽" type="range" min="0.5" max="6" step="0.25" value="1.25"></label>
+          <label class="field">画布背景<select id="background"><option value="midnight">深夜</option><option value="ink">黑色</option><option value="paper">纸白</option></select></label>
+          <div class="toggle-list"><label class="check-field"><span>显示点阵网格</span><input id="grid" type="checkbox" checked></label><label class="check-field"><span>显示起点与海龟标记</span><input id="markers" type="checkbox" checked></label><label class="check-field"><span>显示可能的陷阱位置（避边模式）</span><input id="trap-sites" type="checkbox"></label><label class="check-field"><span>修改后自动适配视图</span><input id="auto-fit" type="checkbox" checked></label></div>
+          <p class="field-note">粉色圆环表示初始边奇偶性允许的陷阱位置，不保证实际会陷住。</p><p class="field-note">适配只改变视图，不改变数学坐标。拖动平移，用滚轮或 +／− 缩放。</p>
         </section>
         <div id="error" class="error" role="alert" hidden></div>
       </div>
-      <details class="saved-setups" id="saved-setups"><summary>Save & load setups<span>JSON · this browser</span></summary><div class="saved-content"><label class="field">Setup name<input id="setup-name" type="text" maxlength="60" value="My experiment" autocomplete="off"></label><div class="button-row"><button id="save-setup">Save here</button><button id="download-setup">Download JSON</button><button id="import-setup">Import JSON</button><input id="setup-file" type="file" accept=".json,application/json" hidden></div><label class="field">Saved in this browser<select id="saved-list"><option value="">Choose a saved setup…</option></select></label><div class="button-row"><button id="load-setup" disabled>Load selected</button><button id="remove-setup" disabled>Remove selected</button></div></div></details>
-      <div class="panel-status"><span id="update-state" role="status">Ready</span><span>Up to 1 million terms</span></div>
+      <details class="saved-setups" id="saved-setups"><summary>保存与加载配置<span>JSON · 当前浏览器</span></summary><div class="saved-content"><label class="field">配置名称<input id="setup-name" type="text" maxlength="60" value="我的实验" autocomplete="off"></label><div class="button-row"><button id="save-setup">保存到本机</button><button id="download-setup">下载 JSON</button><button id="import-setup">导入 JSON</button><input id="setup-file" type="file" accept=".json,application/json" hidden></div><label class="field">本浏览器已保存的配置<select id="saved-list"><option value="">选择已保存的配置…</option></select></label><div class="button-row"><button id="load-setup" disabled>加载所选配置</button><button id="remove-setup" disabled>删除所选配置</button></div></div></details>
+      <div class="panel-status"><span id="update-state" role="status">就绪</span><span>最多 100 万项</span></div>
     </aside>
-    <div class="panel-resizer" id="panel-resizer" role="separator" tabindex="0" aria-label="Settings panel width" aria-orientation="vertical" aria-valuemin="320" aria-valuemax="540" aria-valuenow="380"></div>
-    <section class="drawing-workspace" aria-label="Turtle drawing">
-      <div class="canvas-topbar"><div><div class="eyebrow">ON THE PLANE <span id="base-badge">BASE 2</span></div><h2 id="drawing-title">Even steps, odd turns</h2><p id="rule-summary">Even sum: forward. Odd: turn left.</p></div><div class="view-tools"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit" title="Fit the complete drawing (F)">Fit drawing</button></div></div>
-      <div id="stage" class="stage"><canvas id="drawing" tabindex="0" aria-label="Turtle path. Drag to pan, use plus and minus to zoom, F to fit, and Space to play or pause."></canvas><div id="generation-status" class="generation-status" role="status">Drawing the sequence…</div><div class="stage-hint">Drag to pan <span>·</span> Scroll to zoom <span>·</span> F to fit</div><output id="zoom-label" class="zoom-label">100%</output></div>
-      <p id="edge-status" class="edge-status" role="status" hidden></p><div class="playback-panel"><div class="playback-controls"><button id="step-back" aria-label="Back one term" title="Back one term">|‹</button><button id="play" class="play-button" aria-label="Replay drawing"><span id="play-icon">▶</span><span id="play-label">Replay</span></button><button id="step-forward" aria-label="Forward one term" title="Forward one term">›|</button><input id="progress" aria-label="Sequence playback position" type="range" min="0" max="16384" value="16384"><label class="speed-label"><span class="sr-only">Playback speed</span><select id="speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label><output id="progress-label">16,384 / 16,384</output></div><div class="drawing-stats"><span><strong id="segments">—</strong> moves</span><span><strong id="turns">—</strong> turns</span><span id="extent">— × — units</span><span class="color-key"><span id="key-start">First</span><i id="color-key"></i><span id="key-end">Last</span></span></div></div>
-      <details class="sequence-inspector" id="inspector"><summary><span>Behind the pattern</span><span id="current-step">Inspect the first eight terms</span></summary><div class="inspector-content"><div id="sequence-cards" class="sequence-cards" aria-label="Sequence terms and actions"></div><p class="inspector-note" id="inspector-note"></p></div></details>
+    <div class="panel-resizer" id="panel-resizer" role="separator" tabindex="0" aria-label="设置面板宽度" aria-orientation="vertical" aria-valuemin="320" aria-valuemax="540" aria-valuenow="380"></div>
+    <section class="drawing-workspace" aria-label="海龟绘图">
+      <div class="canvas-topbar"><div><div class="eyebrow">平面上的轨迹 <span id="base-badge">2 进制</span></div><h2 id="drawing-title">偶数前进，奇数转向</h2><p id="rule-summary">数字和为偶数则前进，为奇数则左转。</p></div><div class="view-tools"><button id="zoom-out" aria-label="缩小">−</button><button id="zoom-in" aria-label="放大">+</button><button id="fit" title="适配完整轨迹（F）">适配轨迹</button></div></div>
+      <div id="stage" class="stage"><canvas id="drawing" tabindex="0" aria-label="海龟轨迹。拖动平移，加减号缩放，F 适配，空格播放或暂停。"></canvas><div id="generation-status" class="generation-status" role="status">正在绘制数列…</div><div class="stage-hint">拖动平移 <span>·</span> 滚轮缩放 <span>·</span> F 适配视图</div><output id="zoom-label" class="zoom-label">100%</output></div>
+      <p id="edge-status" class="edge-status" role="status" hidden></p><div class="playback-panel"><div class="playback-controls"><button id="step-back" aria-label="后退一项" title="后退一项">|‹</button><button id="play" class="play-button" aria-label="重放轨迹"><span id="play-icon">▶</span><span id="play-label">重放</span></button><button id="step-forward" aria-label="前进一项" title="前进一项">›|</button><input id="progress" aria-label="数列播放位置" type="range" min="0" max="16384" value="16384"><label class="speed-label"><span class="sr-only">播放速度</span><select id="speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label><output id="progress-label">16,384 / 16,384</output></div><div class="drawing-stats"><span><strong id="segments">—</strong> 次移动</span><span><strong id="turns">—</strong> 次转向</span><span id="extent">— × — 单位</span><span class="color-key"><span id="key-start">起始</span><i id="color-key"></i><span id="key-end">末尾</span></span></div></div>
+      <details class="sequence-inspector" id="inspector"><summary><span>图案背后的规则</span><span id="current-step">查看前八项</span></summary><div class="inspector-content"><div id="sequence-cards" class="sequence-cards" aria-label="数列各项及动作"></div><p class="inspector-note" id="inspector-note"></p></div></details>
     </section>
   </main>
   <div id="toast" role="status" class="toast" hidden></div>

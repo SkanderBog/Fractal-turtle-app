@@ -1,23 +1,25 @@
-# Alpha distribution
+# 测试版分发与构建
 
-Version 1.3.0-alpha.1 provides portable bundles. These are browser apps with a bundled Python launcher, not Electron applications or system installers. Extract the complete archive; keep its executable and `_internal` folder together. The app works offline after download.
+[English](README.en.md) · [项目首页](../README.md) · [启动说明](START_HERE.md)
 
-| Archive target | Native build and smoke-test host | Target |
-| --- | --- | --- |
+版本 1.3.0-alpha.1 提供便携包：浏览器应用配合内置 Python 启动器，不是 Electron 应用或系统安装器。请完整解压，保持可执行文件与 `_internal` 目录在一起；下载后可离线使用。
+
+| 压缩包目标 | 原生构建及冒烟测试环境 | 目标平台 |
+|---|---|---|
 | linux-x64 | Ubuntu 22.04 x64 | glibc 2.35+ Linux x64 |
-| windows-x64 | Windows Server 2022 x64 | Windows 10/11 x64; desktop GUI testing remains open |
+| windows-x64 | Windows Server 2022 x64 | Windows 10/11 x64；桌面 GUI 测试仍待完成 |
 | macos-arm64 | macOS 14 Apple Silicon | macOS 14+ Apple Silicon |
 | macos-x64 | macOS 15 Intel | macOS 15+ Intel |
 
-Each build runs all source tests, audits the installed build packages using pip-audit, builds with pinned PyInstaller, extracts the archive into a directory containing spaces, verifies every file against MANIFEST.json, starts the actual bundled executable, and checks all eight exact app assets plus security headers, traversal blocking, hostile hosts, unsupported writes, and HEAD responses. These checks exercise native executable startup and serving; they do not simulate a graphical browser on every operating system.
+每次构建运行全部源码测试，用 pip-audit 检查已安装构建依赖，使用固定版 PyInstaller 打包，将归档解压到含空格的路径，按 `MANIFEST.json` 核对每个文件，启动真实包内程序，再检查全部 **9** 个准确应用资源及安全头、路径穿越、恶意主机头、写入拒绝和 HEAD 响应。新增资源为本地中文提示模块。这些检查验证可执行程序启动和服务，不模拟所有操作系统上的图形浏览器。
 
-Packages are unsigned; Mac packages are not notarized. SmartScreen or Gatekeeper may prevent a launch. Physical-device GUI launch, OS security prompts, browser downloads, and broad distribution compatibility remain alpha-testing tasks. Follow local software policy. Running the source with an installed Python is an alternative.
+包未签名，macOS 包未公证，SmartScreen 或 Gatekeeper 可能阻止启动。实体设备的 GUI 启动、系统提示、浏览器下载和广泛兼容性仍属于测试版验证工作。请遵守当地软件规定，也可使用已安装 Python 运行源码。
 
-The launcher binds to 127.0.0.1, prefers port 4173, opens the default browser, and stops when its console receives Ctrl+C. If 4173 is occupied it chooses a free port without opening the existing service. Use `--port 4174` for a stable alternate port, `--port 0` to request any free port, or `--no-browser`. Browser storage depends on the exact origin and port; export setups to JSON to move them.
+启动器监听 `127.0.0.1`，优先选 4173 端口并打开默认浏览器；收到 Ctrl+C 后停止。端口占用时选择空闲端口，不打开占用该端口的现有服务。可用 `--port 4174` 固定备用端口，`--port 0` 请求任意空闲端口，或 `--no-browser` 禁止打开浏览器。浏览器存储依赖准确来源及端口，迁移请导出 JSON。
 
-## Rebuild
+## 重新构建
 
-On each native target OS with Python 3.14.7 and Node.js 22:
+在各目标原生系统中使用 Python 3.14.7 和 Node.js 22：
 
 ```sh
 python -m pip install -r packaging/requirements-build.txt
@@ -26,8 +28,10 @@ python packaging/build.py --target linux-x64
 python packaging/smoke.py release-dist/TurtleLab-1.3.0-alpha.1-linux-x64.tar.gz
 ```
 
-Substitute the target and archive filename for Windows or macOS. The build refuses an OS/architecture or Python-version mismatch. PyInstaller's entry point and data directory are explicit; it does not copy the repository wholesale. Python, PyInstaller, and its dependencies are pinned. Every archive contains START_HERE.md, BUILD-INFO.json (source commit, exact Python and dependency versions), MANIFEST.json, and third-party notices. The build environment is recorded but archives are not claimed to be bit-for-bit reproducible. Publication uses only artifacts from the tested source commit and a SHA256SUMS file.
+Windows／macOS 请替换目标和压缩包名称。构建拒绝不匹配的操作系统、架构或 Python 版本。PyInstaller 入口及数据目录明确指定，不复制整个仓库。Python、PyInstaller 及依赖均固定版本。
 
-Build automation has read-only repository permission and cannot publish a release or change visibility by itself. Source tests run on PRs; native packaging runs on main pushes and manual dispatches.
+每个归档包含 `START_HERE.md`、记录源码提交及准确 Python／依赖版本的 `BUILD-INFO.json`、`MANIFEST.json` 和第三方声明。记录构建环境并不表示归档可逐字节复现。发布只使用经过测试的源码提交产物，并附 `SHA256SUMS`。
 
-References: [PyInstaller native build requirements](https://pyinstaller.org/en/latest/usage.html), [GitHub runner platforms](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [Python 3.14.7](https://www.python.org/downloads/release/python-3147/), [Python third-party licenses](https://docs.python.org/3.14/license.html).
+构建工作流只有只读仓库权限，不能自行发布发行版或修改可见性。PR 运行源码检查；主分支 push 和手动触发运行原生打包。源码中文化后，旧发行包不会自动更新；以下载包中的提交号为准。
+
+参考：[PyInstaller 原生构建要求](https://pyinstaller.org/en/latest/usage.html)、[GitHub runner 平台](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)、[Python 3.14.7](https://www.python.org/downloads/release/python-3147/)、[Python 第三方许可](https://docs.python.org/3.14/license.html)。

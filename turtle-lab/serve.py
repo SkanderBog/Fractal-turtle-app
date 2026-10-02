@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parent / 'dist'
 PUBLIC_FILES = {
     'index.html': 'text/html; charset=utf-8',
     'style.css': 'text/css; charset=utf-8',
+    'zh-CN.mjs': 'text/javascript; charset=utf-8',
     'app.mjs': 'text/javascript; charset=utf-8',
     'edge.mjs': 'text/javascript; charset=utf-8',
     'core.mjs': 'text/javascript; charset=utf-8',

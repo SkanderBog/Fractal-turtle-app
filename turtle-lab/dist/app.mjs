@@ -1,9 +1,10 @@
+import {translate} from './zh-CN.mjs';
 import {DIRECTIONS,canonicalEdge,randomEdges,nearestEdge,cageEdges,trapCandidates} from './edge.mjs';
 import {ACTIONS, DEFAULTS, validateConfig, describeStep, fitBounds, numberAt} from './core.mjs';
 import {APPEARANCE, MAX_SETUP_BYTES, validateAppearance, validateSetup, parseSetup, serializeSetup} from './setup.mjs';
 
 const $ = id => document.getElementById(id);
-const number = value => new Intl.NumberFormat('en', {maximumFractionDigits: 2}).format(value);
+const number = value => new Intl.NumberFormat('zh-CN', {maximumFractionDigits: 2}).format(value);
 const presets = {
   original: {...DEFAULTS},
   'edge-quad': {...DEFAULTS,geometry:'edge',blocked:'turn',modulus:4,actions:['F','L','F','R']},
@@ -14,8 +15,8 @@ const presets = {
   binary: {...DEFAULTS, modulus: 3, angle: 90, actions: ['F','L','RF']},
   square: {...DEFAULTS, sequence: 'squares', base: 5, count: 8192, modulus: 3, actions: ['F','L','RF']},
 };
-const actionLabels = {F:'Forward', L:'Left turn', R:'Right turn', LF:'Left + step', RF:'Right + step', N:'No action'};
-const metricLabels = {sum:'sum', weighted:'weight sum', last:'last', nonzero:'nonzero', count:'count'};
+const actionLabels = {F:'前进', L:'左转', R:'右转', LF:'左转并前进', RF:'右转并前进', N:'不动作'};
+const metricLabels = {sum:'数字和', weighted:'权重和', last:'末位', nonzero:'非零个数', count:'出现次数'};
 const numericFields = ['base','start','stride','count','modulus','digit','angle','initialHeading','stepLength'];
 const storageKey = 'turtle-lab.setups.v1';
 let config = validateConfig(DEFAULTS), appearance = {...APPEARANCE}, path = null;
@@ -28,14 +29,14 @@ const canvas = $('drawing'), ctx = canvas.getContext('2d');
 
 function toast(message) {
   clearTimeout(toastTimer);
-  $('toast').textContent = message;
+  $('toast').textContent = translate(message);
   $('toast').hidden = false;
   toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4500);
 }
 function showError(message) {
-  $('error').textContent = message;
+  $('error').textContent = translate(message);
   $('error').hidden = !message;
-  $('update-state').textContent = message ? 'Check settings' : busy ? 'Drawing…' : 'Up to date';
+  $('update-state').textContent = message ? '请检查设置' : busy ? '正在绘制…' : '已更新';
 }
 function color(t) {
   if (appearance.colorMode === 'solid') return appearance.solidColor;
@@ -54,7 +55,7 @@ function refreshAppearance() {
   $('solid-field').hidden = appearance.colorMode !== 'solid';
   $('line-width-label').textContent = `${appearance.lineWidth} px`;
   $('color-key').style.background = appearance.colorMode==='collision'?`linear-gradient(90deg,${color(0)} 0% 50%,${color(1)} 50% 100%)`:`linear-gradient(90deg,${Array.from({length:9}, (_,i) => color(i/8)).join(',')})`;
-  const labels = {sequence:['First','Last'], direction:['0°','360°'], remainder:['Rule 0',`Rule ${config.modulus-1}`], solid:['Solid',''], collision:['Unblocked','After search']};
+  const labels = {sequence:['起始','末尾'], direction:['0°','360°'], remainder:['规则 0',`规则 ${config.modulus-1}`], solid:['单色',''], collision:['直接通过','搜索后通过']};
   [$('key-start').textContent, $('key-end').textContent] = labels[appearance.colorMode];
   queueRender();
 }
@@ -153,8 +154,8 @@ function setPosition(value) {
 function stopPlayback() {
   playing=false; cancelAnimationFrame(frame);
   const partial = position>0 && position<(path?.count??0);
-  $('play-icon').textContent='▶'; $('play-label').textContent=partial?'Play':'Replay';
-  $('play').setAttribute('aria-label',partial?'Continue drawing':'Replay drawing');
+  $('play-icon').textContent='▶'; $('play-label').textContent=partial?'播放':'重放';
+  $('play').setAttribute('aria-label',partial?'继续绘制':'重放轨迹');
 }
 function tick(now) {
   if (!playing) return;
@@ -171,7 +172,7 @@ function togglePlay() {
   if (playing) { stopPlayback(); return; }
   if (position>=path.count) setPosition(0);
   playing=true; playPosition=position; lastTick=performance.now();
-  $('play-icon').textContent='Ⅱ'; $('play-label').textContent='Pause'; $('play').setAttribute('aria-label','Pause drawing');
+  $('play-icon').textContent='Ⅱ'; $('play-label').textContent='暂停'; $('play').setAttribute('aria-label','暂停绘制');
   frame=requestAnimationFrame(tick);
 }
 function readNumber(id) { return $(id).value.trim()==='' ? NaN : Number($(id).value); }
@@ -189,17 +190,17 @@ function renderRuleRows(c) {
     const card=document.createElement('div'); card.className='rule-card';
     const row=document.createElement('div'); row.className='rule-action';
     const badge=document.createElement('span'); badge.className='remainder-badge';
-    const caption=document.createElement('span'); caption.textContent='IF';
+    const caption=document.createElement('span'); caption.textContent='余数';
     const value=document.createElement('strong'); value.textContent=i; badge.append(caption,value);
     const label=document.createElement('label'), select=document.createElement('select');
-    select.setAttribute('aria-label',`Action for remainder ${i}`); select.dataset.remainder=i;
-    for (const [value,text] of Object.entries(ACTIONS)) { const option=document.createElement('option'); option.value=value; option.textContent=text; select.append(option); }
+    select.setAttribute('aria-label',`余数 ${i} 的动作`); select.dataset.remainder=i;
+    for (const [value,text] of Object.entries(ACTIONS)) { const option=document.createElement('option'); option.value=value; option.textContent=translate(text); select.append(option); }
     select.value=actions[i]??(i===0?'F':'L'); label.append(select); row.append(badge,label);
     const overrides=document.createElement('div'); overrides.className='rule-overrides';
-    for (const [key,text,max,values] of [['angle','Turn (°)',360,angles],['step','Step (units)',1000,steps]]) {
+    for (const [key,text,max,values] of [['angle','转角（°）',360,angles],['step','步长（单位）',1000,steps]]) {
       const field=document.createElement('label'); field.className='field'; field.textContent=text;
       const input=document.createElement('input'); input.type='number'; input.min=0; input.max=max; input.step='any'; input.dataset[key]=i;
-      input.setAttribute('aria-label',`${key==='angle'?'Turn angle':'Step distance'} for remainder ${i}`);
+      input.setAttribute('aria-label',`余数 ${i} 的${key==='angle'?'转角':'步长'}`);
       input.value=values?.[i]??''; field.append(input); overrides.append(field);
     }
     card.append(row,overrides); $('rule-rows').append(card);
@@ -231,7 +232,7 @@ function renderDigitWeights(weights = readDigitWeights()) {
     const symbol = document.createElement('span'); symbol.textContent = digit.toString(36).toUpperCase();
     symbol.title = `Digit value ${digit}`;
     const input = document.createElement('input'); input.type = 'number'; input.min = -1000000; input.max = 1000000; input.step = 1;
-    input.dataset.weight = digit; input.setAttribute('aria-label', `Weight for digit ${symbol.textContent}`);
+    input.dataset.weight = digit; input.setAttribute('aria-label', `数字 ${symbol.textContent} 的权重`);
     input.value = Number.isFinite(weights[digit]) ? weights[digit] : '';
     label.append(symbol,input); $('weight-grid').append(label);
   }
@@ -240,7 +241,7 @@ function updateWeightExample() {
   if (config.metric !== 'weighted') return;
   const step = describeStep(Math.min(3,config.count-1),config);
   const sum = [...step.digits].map(digit => config.digitWeights[parseInt(digit,36)]).map(weight => weight < 0 ? `(${weight})` : String(weight)).join(' + ');
-  $('weight-example').textContent = `${step.n} → ${step.digits} in base ${config.base}: ${sum} = ${step.value}; remainder ${step.remainder}.`;
+  $('weight-example').textContent = `${step.n} → ${config.base} 进制的 ${step.digits}：${sum} = ${step.value}；余数 ${step.remainder}。`;
 }
 function readConfig() {
   const next={};
@@ -260,63 +261,63 @@ function writeConfig(c) {
 function updateSummary() {
   updateWeightExample();
   $('number-preview').textContent=Array.from({length:Math.min(6,config.count)},(_,i)=>numberAt(i,config).toString()).join(', ')+(config.count>6?' …':'');
-  $('base-badge').textContent=`BASE ${config.base}`;
+  $('base-badge').textContent=`${config.base} 进制`;
   $('rule-summary').textContent=config.metric==='sum'&&config.modulus===2
-    ? `Even sum: ${ACTIONS[config.actions[0]].toLowerCase()}. Odd: ${ACTIONS[config.actions[1]].toLowerCase()}.`
-    : `${$('metric').selectedOptions[0].textContent} · remainder ÷ ${config.modulus}`;
-  $('drawing-title').textContent=$('preset').value==='custom'?'Your experiment':$('preset').selectedOptions[0].textContent;
+    ? `数字和为偶数：${translate(ACTIONS[config.actions[0]])}；奇数：${translate(ACTIONS[config.actions[1]])}。`
+    : `${$('metric').selectedOptions[0].textContent} · 除以 ${config.modulus} 取余`;
+  $('drawing-title').textContent=$('preset').value==='custom'?'你的实验':$('preset').selectedOptions[0].textContent;
   for (const button of document.querySelectorAll('[data-count]')) button.classList.toggle('active',Number(button.dataset.count)===config.count);
   for (const button of document.querySelectorAll('button[data-angle]')) button.classList.toggle('active',Number(button.dataset.angle)===config.angle);
   refreshAppearance();
 }
 function updateInspector() {
   const total=path?.count??config.count,current=position>0?Math.min(position-1,total-1):-1;
-  $('current-step').textContent=current>=0?`Term ${number(position)} · ${actionLabels[describeStep(current,config).action]}`:position===0?'At the starting point':'Inspect the first eight terms';
+  $('current-step').textContent=current>=0?`第 ${number(position)} 项 · ${actionLabels[describeStep(current,config).action]}`:position===0?'位于起点':'查看前八项';
   if (!$('inspector').open) return;
   const start=current<0?0:Math.max(0,Math.min(current-3,total-8));
   $('sequence-cards').replaceChildren();
   for (let i=start; i<Math.min(start+8,total); i++) {
     const step=describeStep(i,config), card=document.createElement('div');
     card.className=`sequence-card ${step.action.includes('F')?'':'turn'} ${i===current?'current':''}`;
-    for (const [className,text] of [['decimal',`value ${step.n}`],['digits',step.digits],['calculation',`${metricLabels[config.metric]} ${step.value} · r ${step.remainder}`],['action',actionLabels[step.action]+(path?.outcomes?' → '+outcomeLabel(i):'')]]) {
+    for (const [className,text] of [['decimal',`数值 ${step.n}`],['digits',step.digits],['calculation',`${metricLabels[config.metric]} ${step.value} · r ${step.remainder}`],['action',actionLabels[step.action]+(path?.outcomes?' → '+outcomeLabel(i):'')]]) {
       const element=document.createElement('span'); element.className=className; element.textContent=text;
-      if (className==='digits') element.title=`${step.digits} in base ${config.base}`;
-      if (className==='decimal') element.title=`Term ${i+1}: decimal ${step.n}`;
+      if (className==='digits') element.title=`${config.base} 进制：${step.digits}`;
+      if (className==='decimal') element.title=`第 ${i+1} 项：十进制 ${step.n}`;
       card.append(element);
     }
     $('sequence-cards').append(card);
   }
-  $('inspector-note').textContent=`Start: (0, 0), heading ${config.initialHeading}°. Defaults: ${config.stepLength} unit steps, ${config.angle}° turns. Combined actions turn before moving.`;
+  $('inspector-note').textContent=`起点：(0, 0)，朝向 ${config.initialHeading}°。默认步长 ${config.stepLength}，转角 ${config.angle}°。组合动作先转向再前进。`;
 }
 function setBusy(value) {
   busy=value; $('play').disabled=value||!path||path.count===0; $('progress').disabled=value||!path||path.count===0; $('export-image').disabled=value||!path;
   $('step-back').disabled=value||!path||position===0; $('step-forward').disabled=value||!path||position===path?.count;
-  $('update-state').textContent=value?'Drawing…':'Up to date';
+  $('update-state').textContent=value?'正在绘制…':'已更新';
   $('drawing').setAttribute('aria-busy',String(value));
 }
 function regenerate(input,preserveView=false) {
   const next=validateConfig(input);
   stopPlayback(); worker?.terminate(); pendingReject?.(new Error('Replaced by a newer drawing.')); pendingReject=null;
   const id=++generation;
-  setBusy(true); showError(''); $('generation-status').textContent='Drawing the sequence…'; $('generation-status').hidden=false;
+  setBusy(true); showError(''); $('generation-status').textContent='正在绘制数列…'; $('generation-status').hidden=false;
   return new Promise((resolve,reject) => {
     pendingReject=reject;
     const fail=message => {
       if (id!==generation) return;
       worker?.terminate(); worker=null; pendingReject=null; setBusy(false); $('generation-status').hidden=true;
-      showError(`${message} Your last valid drawing is still available.`); reject(new Error(message));
+      showError(`${translate(message)} 上一次有效绘图仍可使用。`); reject(new Error(message));
     };
-    try { worker=new Worker(new URL('./worker.mjs',import.meta.url),{type:'module'}); } catch { fail('The drawing worker could not start.'); return; }
-    worker.onerror=()=>fail('The drawing could not load. Refresh and try again.');
+    try { worker=new Worker(new URL('./worker.mjs',import.meta.url),{type:'module'}); } catch { fail('无法启动绘图后台任务。'); return; }
+    worker.onerror=()=>fail('无法加载绘图，请刷新后重试。');
     worker.onmessage=({data}) => {
       if (id!==generation) return;
       if (data.error) { fail(data.error); return; }
       path=data.result; config=next; cachedPaths=null;
       worker.terminate(); worker=null; pendingReject=null; setBusy(false);
       $('progress').max=path.count; setPosition(path.count); stopPlayback(); updateSummary();
-      $('extent').textContent=`${number(path.bounds.maxX-path.bounds.minX)} × ${number(path.bounds.maxY-path.bounds.minY)} units`;
+      $('extent').textContent=`${number(path.bounds.maxX-path.bounds.minX)} × ${number(path.bounds.maxY-path.bounds.minY)} 单位`;
       $('generation-status').hidden=path.segments>0;
-      if (!path.segments) $('generation-status').textContent=config.geometry==='edge'?(path.stopReason==='trap'?'All six edges at the origin are marked.':path.stationaryCertificate?'Movement is locked by the rule and initial marks. Instructions can still turn the turtle.':'No successful moves in this prefix. Inspect the instructions or edit initial edges.'):'Only turns or pauses. Choose a forward action to draw.';
+      if (!path.segments) $('generation-status').textContent=config.geometry==='edge'?(path.stopReason==='trap'?'原点的六条邻边均已标记。':path.stationaryCertificate?'规则与初始标记使位置锁定，但指令仍可改变方向。':'当前指令前缀中没有成功移动，请检查指令或修改初始边。'):'当前只有转向或暂停，请添加前进动作。';
       if (!preserveView&&(appearance.autoFit||id===1)) fit(); else queueRender();
       requestAnimationFrame(()=>resolve(readState()));
     };
@@ -324,7 +325,7 @@ function regenerate(input,preserveView=false) {
   });
 }
 function fromForm() {
-  try { regenerate(readConfig()).catch(()=>{}); } catch (error) { showError(`${error.message} Showing the last valid drawing.`); }
+  try { regenerate(readConfig()).catch(()=>{}); } catch (error) { showError(`${translate(error.message)} 当前显示上一次有效绘图。`); }
 }
 function scheduleUpdate(event) {
   if(event.target.closest('#seed-controls'))return;
@@ -342,14 +343,14 @@ function updateEdgeControls(){
 }
 function outcomeLabel(i){
   if(!path?.outcomes||i>=path.count)return '';
-  return path.outcomes[i]===1?(path.searches[i]?`searched ${path.searches[i]} directions, moved`:'moved'):path.outcomes[i]===2?'blocked, stayed':path.outcomes[i]===3?'turned':'paused';
+  return path.outcomes[i]===1?(path.searches[i]?`搜索 ${path.searches[i]} 个方向后移动`:'已移动'):path.outcomes[i]===2?'受阻，原地等待':path.outcomes[i]===3?'已转向':'已暂停';
 }
 function updateEdgeStatus(){
   const enabled=config.geometry==='edge'&&path?.outcomes;$('edge-status').hidden=!enabled;if(!enabled)return;
   const locked=path.stationaryCertificate&&position>=path.stationaryCertificate.fromTerm;
-  const terminal=locked?`Movement locked from term ${number(path.stationaryCertificate.fromTerm)} · instructions continue`:position===path.count?(path.stopReason==='trap'?`Trapped after ${number(path.count)} terms`:`Term limit reached (${number(path.requestedCount)}) · no trap observed`):`Replay term ${number(position)}`;
+  const terminal=locked?`从第 ${number(path.stationaryCertificate.fromTerm)} 项起位置锁定 · 指令继续`:position===path.count?(path.stopReason==='trap'?`执行 ${number(path.count)} 项后陷住`:`达到项数上限（${number(path.requestedCount)}）· 尚未观察到陷阱`):`重放第 ${number(position)} 项`;
   const mask=path.incidentMasks[position],degree=mask.toString(2).replaceAll('0','').length;
-  $('edge-status').textContent=`${terminal} · ${number(path.uniquePrefix[position])} visited ${path.uniquePrefix[position]===1?'vertex':'vertices'} · ${number(path.blockedPrefix[position])} blocked requests · ${degree}/6 marked at the turtle`;
+  $('edge-status').textContent=`${terminal} · 访问 ${number(path.uniquePrefix[position])} 个顶点 · ${number(path.blockedPrefix[position])} 次受阻请求 · 当前位置 ${degree}/6 条边已标记`;
 }
 function drawInitialEdges(){
   const line=(q,r,d)=>{const [dq,dr]=DIRECTIONS[d];ctx.moveTo(q+r/2,-r*Math.sqrt(3)/2);ctx.lineTo(q+dq+(r+dr)/2,-(r+dr)*Math.sqrt(3)/2);};
@@ -418,7 +419,7 @@ for (const button of document.querySelectorAll('[data-tab]')) {
 function updateSettingsToggle() {
   const hidden=document.body.classList.contains('settings-hidden');
   $('toggle-settings').setAttribute('aria-expanded',String(!hidden));
-  $('toggle-settings').textContent=hidden?'Show settings':window.innerWidth<=850?'Customize':'Hide settings';
+  $('toggle-settings').textContent=hidden?'显示设置':window.innerWidth<=850?'调整设置':'隐藏设置';
 }
 $('toggle-settings').addEventListener('click',()=>{
   if (window.innerWidth<=850) {
@@ -460,7 +461,7 @@ canvas.addEventListener('pointermove',event=>{
 });
 function finishPointer(event){
   if(event.type==='pointerup'&&editClick?.id===event.pointerId&&pointers.size===1){
-    if(view.scale<14)toast('Zoom in to edit individual edges.');
+    if(view.scale<14)toast('放大后可编辑单条边。');
     else {const rect=canvas.getBoundingClientRect(),x=(event.clientX-rect.left-width/2)/view.scale+view.x,y=-(event.clientY-rect.top-height/2)/view.scale+view.y;const edge=nearestEdge(x,y,Math.min(.25,10/view.scale));if(edge)toggleSeed(edge);}
   }
   editClick=null;pointers.delete(event.pointerId);pinch=null;if(!pointers.size)canvas.classList.remove('dragging');}
@@ -476,7 +477,7 @@ canvas.addEventListener('keydown',event=>{
 new ResizeObserver(resize).observe($('stage'));
 
 function refreshSavedList() {
-  $('saved-list').replaceChildren(new Option('Choose a saved setup…',''));
+  $('saved-list').replaceChildren(new Option('选择已保存的配置…',''));
   setups.forEach((setup,i)=>$('saved-list').append(new Option(setup.name,String(i))));
   $('load-setup').disabled=true; $('remove-setup').disabled=true;
 }
@@ -484,11 +485,11 @@ function readSavedSetups() {
   try {
     const raw=localStorage.getItem(storageKey);
     if(raw){if(raw.length>1048576)throw new Error();const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>12)throw new Error();setups=data.map(validateSetup);}
-  } catch {setups=[];toast('Saved setups could not be read. You can still import a JSON setup.');}
+  } catch {setups=[];toast('无法读取已保存配置，仍可导入 JSON 配置。');}
   refreshSavedList();
 }
 function saveStored(next) {
-  const json=JSON.stringify(next);if(json.length>1048576)throw new Error('Saved setups exceed the browser library limit. Download a JSON setup instead.');
+  const json=JSON.stringify(next);if(json.length>1048576)throw new Error('配置超过本浏览器存储上限，请下载 JSON 文件。');
   localStorage.setItem(storageKey,json); setups=next; refreshSavedList();
 }
 function currentSetup() { return validateSetup({version:2,name:$('setup-name').value,config:readConfig(),appearance:readAppearance()}); }
@@ -500,36 +501,36 @@ function applySetup(setup) {
 $('save-setup').addEventListener('click',()=>{
   try {
     const setup=currentSetup(),next=[...setups],index=next.findIndex(s=>s.name===setup.name);
-    if(index>=0)next[index]=setup;else{if(next.length>=12)throw new Error('You have 12 saved setups. Remove one or download a JSON file.');next.push(setup);}
-    saveStored(next);toast(`Saved “${setup.name}” in this browser.`);
-  }catch(error){toast(error.message||'Browser storage is unavailable. Download a JSON setup instead.');}
+    if(index>=0)next[index]=setup;else{if(next.length>=12)throw new Error('已保存 12 个配置，请删除一个或下载 JSON 文件。');next.push(setup);}
+    saveStored(next);toast(`已在本浏览器保存“${setup.name}”。`);
+  }catch(error){toast(error.message||'浏览器存储不可用，请下载 JSON 配置。');}
 });
 $('saved-list').addEventListener('change',()=>{const selected=$('saved-list').value!=='';$('load-setup').disabled=!selected;$('remove-setup').disabled=!selected;});
-function selectedSetupIndex(){const value=$('saved-list').value,index=Number(value);if(value===''||!Number.isInteger(index)||index<0||index>=setups.length)throw new Error('Choose a saved setup first.');return index;}
-$('load-setup').addEventListener('click',()=>{try{applySetup(setups[selectedSetupIndex()]).then(()=>toast('Saved setup loaded.')).catch(error=>toast(error.message));}catch(error){toast(error.message);}});
-$('remove-setup').addEventListener('click',()=>{try{const index=selectedSetupIndex();saveStored(setups.filter((_,i)=>i!==index));toast('Saved setup removed. The current drawing is unchanged.');}catch(error){toast(error.message);}});
+function selectedSetupIndex(){const value=$('saved-list').value,index=Number(value);if(value===''||!Number.isInteger(index)||index<0||index>=setups.length)throw new Error('请先选择已保存的配置。');return index;}
+$('load-setup').addEventListener('click',()=>{try{applySetup(setups[selectedSetupIndex()]).then(()=>toast('已加载配置。')).catch(error=>toast(error.message));}catch(error){toast(error.message);}});
+$('remove-setup').addEventListener('click',()=>{try{const index=selectedSetupIndex();saveStored(setups.filter((_,i)=>i!==index));toast('已删除保存的配置，当前绘图未改变。');}catch(error){toast(error.message);}});
 function download(blob,filename){
   const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
-$('download-setup').addEventListener('click',()=>{try{const setup=currentSetup();download(new Blob([serializeSetup(setup.config,setup.appearance,setup.name)],{type:'application/json'}),'turtle-lab-setup.json');toast('Setup download requested.');}catch(error){toast(error.message);}});
+$('download-setup').addEventListener('click',()=>{try{const setup=currentSetup();download(new Blob([serializeSetup(setup.config,setup.appearance,setup.name)],{type:'application/json'}),'turtle-lab-setup.json');toast('已请求下载配置。');}catch(error){toast(error.message);}});
 $('import-setup').addEventListener('click',()=>$('setup-file').click());
 $('setup-file').addEventListener('change',async()=>{
   const file=$('setup-file').files[0];if(!file)return;
-  try{if(file.size>MAX_SETUP_BYTES)throw new Error('Setup files must be smaller than 64 KB.');const setup=parseSetup(await file.text());await applySetup(setup);toast(`Loaded “${setup.name}”.`);}catch(error){toast(error.message);}finally{$('setup-file').value='';}
+  try{if(file.size>MAX_SETUP_BYTES)throw new Error('配置文件必须小于 64 KB。');const setup=parseSetup(await file.text());await applySetup(setup);toast(`已加载“${setup.name}”。`);}catch(error){toast(error.message);}finally{$('setup-file').value='';}
 });
 $('export-image').addEventListener('click',()=>{
   if(!path||busy)return;
   render();const output=document.createElement('canvas');output.width=canvas.width;output.height=canvas.height;const context=output.getContext('2d');
   context.fillStyle={midnight:'#0b1116',ink:'#000000',paper:'#edf1ef'}[appearance.background];context.fillRect(0,0,output.width,output.height);context.drawImage(canvas,0,0);
-  output.toBlob(blob=>{if(blob){download(blob,'turtle-lab.png');toast('PNG download requested with the current view and background.');}else toast('The image could not be created.');},'image/png');
+  output.toBlob(blob=>{if(blob){download(blob,'turtle-lab.png');toast('已请求下载当前视图和背景的 PNG。');}else toast('无法生成图片。');},'image/png');
 });
 function readState(){return {config:{...config,actions:[...config.actions],ruleAngles:[...config.ruleAngles],ruleSteps:[...config.ruleSteps],digitWeights:[...config.digitWeights],seedEdges:config.seedEdges.map(e=>[...e])},stopReason:path?.stopReason??null,consumedTerms:path?.count??0,stationaryCertificate:path?.stationaryCertificate??null,blocked:path?.blocked??0,uniqueVertices:path?.unique??null,appearance:{...appearance},segments:path?.segments??0,turns:path?.turns??0,bounds:path?.bounds??null,visibleTerms:position,busy};}
 function registerTools(){
   if(!document.modelContext?.registerTool)return;
   const lifecycle=new AbortController();window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
   const properties={geometry:{enum:['free','edge']},blocked:{enum:['stay','turn']},seedEdges:{type:'array',maxItems:512,items:{type:'array',minItems:3,maxItems:3,items:{type:'integer'}}},base:{type:'integer',minimum:2,maximum:36},count:{type:'integer',minimum:1,maximum:1000000},start:{type:'integer',minimum:0},stride:{type:'integer',minimum:1,maximum:1000000},sequence:{enum:['integers','squares','triangular']},metric:{enum:['sum','weighted','last','nonzero','count']},digitWeights:{type:'array',items:{type:'integer',minimum:-1000000,maximum:1000000},minItems:2,maxItems:36},digit:{type:'integer',minimum:0,maximum:35},modulus:{type:'integer',minimum:2,maximum:8},angle:{type:'number',minimum:0,maximum:360},initialHeading:{type:'number',minimum:0,maximum:360},stepLength:{type:'number',minimum:0.01,maximum:1000},actions:{type:'array',items:{enum:Object.keys(ACTIONS)},minItems:2,maxItems:8},ruleAngles:{type:'array',items:{type:['number','null'],minimum:0,maximum:360},minItems:2,maxItems:8},ruleSteps:{type:'array',items:{type:['number','null'],minimum:0,maximum:1000},minItems:2,maxItems:8}};
-  const tools=[{name:'read_turtle_experiment',title:'Read turtle experiment',description:'Read the current completed experiment, appearance, bounds, playback position, and loading state.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:readState},
-    {name:'configure_turtle_experiment',title:'Configure turtle experiment',description:'Change turtle rules and generate the visible drawing. When changing modulus, supply matching actions and optional angle/distance arrays.',inputSchema:{type:'object',properties,additionalProperties:false},annotations:{readOnlyHint:false},execute:async input=>{
+  const tools=[{name:'read_turtle_experiment',title:'读取海龟实验',description:'读取当前完整实验、外观、边界、播放位置和加载状态。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:readState},
+    {name:'configure_turtle_experiment',title:'配置海龟实验',description:'修改海龟规则并生成可见图案。改变取余除数时，须提供对应动作，以及可选的转角和距离数组。',inputSchema:{type:'object',properties,additionalProperties:false},annotations:{readOnlyHint:false},execute:async input=>{
       if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!Object.hasOwn(properties,key)))throw new Error('Use supported experiment settings.');
       const patch={...input};if(patch.modulus!==undefined&&patch.modulus!==config.modulus){patch.ruleAngles??=null;patch.ruleSteps??=null;}
       const next=validateConfig({...config,...patch});clearTimeout(debounce);$('preset').value='custom';writeConfig(next);return regenerate(next);

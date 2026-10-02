@@ -1,74 +1,76 @@
-# Using Turtle Lab
+# 海龟实验室使用说明
 
-Run `../run.sh` from this directory, or `python3 serve.py`, then open http://127.0.0.1:4173. There is no installation or build step. Use the included server to retain the security headers and file restrictions described in [SECURITY.md](../SECURITY.md).
+[English](README.en.md) · [项目首页](../README.md)
 
-## The initial experiment
+在本目录执行 `../run.sh` 或 `python3 serve.py`，然后打开 http://127.0.0.1:4173。无需安装或构建；请使用附带服务器，以保留[安全说明](../SECURITY.md)中的 HTTP 头和文件访问限制。
 
-Read 16,384 integers starting at **0** in base **2**. Even digit sum means advance one unit. Odd digit sum means turn **60° counterclockwise without moving**. The turtle starts at (0, 0), facing the positive x axis, with mathematical y pointing upward.
+## 默认实验
 
-## Sequence
+从 **0** 开始读取 **16,384** 个整数，使用 **2 进制**。数字和为偶数时前进 1 单位；为奇数时**原地逆时针转 60°**。起点为 (0, 0)，朝向 x 轴正方向，数学 y 轴向上。
 
-The index starts at the selected n and increases by the selected interval. Each term is n, n², or n(n+1)/2, depending on the sequence. Bases 2–36 use digits 0–9 and A–Z. The engine rejects indices or transformed values outside JavaScript's exact safe-integer range.
+## 数列
 
-A digit rule computes one quantity from each number's representation. The representation of zero is one digit, so counting occurrences of digit 0 in number 0 gives 1. Divide the quantity by the selected divisor (2–8) and use the remainder to select a rule.
+索引从选定 n 开始，按选定间隔递增。每项可为 n、n² 或 n(n+1)/2。进制范围 2–36，数字使用 0–9、A–Z；超出 JavaScript 精确安全整数范围的索引或变换值会被拒绝。
 
-## Rules
+数字规则从每个数的表示中算出一个量。零表示为单个数字 0，因此数值 0 中数字 0 的出现次数是 1。将所得量除以所选除数（2–8），用余数选择动作。
 
-Choose **Sum of digit weights** to assign a signed integer to each digit. The app adds those weights for every digit in the number, then takes the remainder to select a turtle action. For example, in base 2 with weights **0 → −2, 1 → 1**, the number 5 is `101`, so its weight sum is `1 − 2 + 1 = 0`. The number 2 is `10`, whose sum is −1; with divisor 3 it selects remainder **2**. Remainders are always between 0 and divisor − 1.
+## 动作与权重
 
-Zero is represented by a single digit 0 and contributes its weight once. No leading zeros are added. Each weight must be a whole number from −1,000,000 to 1,000,000. Weights stay exact within the supported sequence limits.
+选择“各位数字的权重之和”，即可给每个数字指定一个有符号整数。将各位对应权重相加，再取余数。例如，二进制权重 **0 → −2、1 → 1** 时，5 写成 `101`，权重和为 `1 − 2 + 1 = 0`。2 写成 `10`，权重和为 −1；除数为 3 时映射到余数 **2**。余数始终位于 0 至除数减 1。
 
-**Digit values** restores ordinary digit sums. **All 1** counts the number of digits; **All 0** sends every term to remainder 0. The editor shows digits for the current base (0–9 and A–Z); hidden weights remain available if you lower and then raise the base. Saved JSON contains all 36 weights, and files from earlier versions still load with ordinary digit-value weights. Invalid edits retain the last valid picture and display an error.
+零只贡献一次数字 0 的权重，不补前导零。每个权重须为 −1,000,000 至 1,000,000 的整数；在支持的数列范围内保持精确。
 
-Each remainder supports forward, left, right, left then forward, right then forward, or no action. Combined actions **turn first**. The starting direction is 0–360°; 0° faces right, 90° faces up. The default angle is 0–360°, and default step length is 0.01–1,000 units.
+“使用数字本身”恢复普通数字和；“全为 1”统计位数；“全为 0”让所有项选中余数 0。编辑器显示当前进制所需的数字，降低再提高进制时仍保留隐藏权重。保存的 JSON 包含全部 36 个权重，旧版文件按普通数字权重载入。无效修改会提示错误并保留上一次有效图案。
 
-Each rule can override its turn angle and forward distance. Blank means use the default; **zero is a real override**. A zero-distance forward action is still counted as a move, and a 0°/360° turn is still counted as a turn. An unused override is preserved but does not affect an action that does not turn or move.
+每种余数支持前进、左转、右转、左转后前进、右转后前进或不动作。组合动作**先转向**。初始方向和默认转角范围均为 0–360°；0° 向右，90° 向上。默认步长为 0.01–1,000。
 
-Invalid edits keep the previous valid drawing visible. New settings cancel unfinished older generation. Expensive geometry work runs in a worker, and render paths are cached for pan and zoom.
+每条规则可单独覆盖转角和步长。留空表示使用默认值，**0 是有效覆盖值**：自由绘图中零距离前进仍计一次移动，0°/360° 转向仍计一次转向。不适用于当前动作的覆盖值会保留，但不改变该动作。
 
-## Edge-avoiding mode
+新设置会取消未完成的旧计算；几何计算在 worker 中运行，渲染路径缓存以便平移和缩放。
 
-Choose an **Edge trail** preset, or select **Edge avoiding · triangular lattice** in Rules. Every successful unit move permanently forbids the traversed edge in both directions. Headings and turns must be multiples of 60°; forward distances must be exactly one. These restrictions apply only in edge mode. The ordinary free-drawing model keeps its original arbitrary angles, distances, and zero-distance overrides.
+## 避边模式
 
-**Stay** consumes a blocked instruction without moving. **Search counterclockwise** rotates through marked directions until it finds a free edge, then moves within the same instruction. Combined actions turn first, then apply this policy. The turn count includes both configured turn instructions and individual 60° search turns.
+选择“避边轨迹”预设，或在规则页选择“三角格点”避边模型。每次成功移动后，该无向边在两个方向上都永久禁用。方向和转角须为 60° 的整数倍，前进距离必须恰为 1。自由绘图仍允许任意支持的角度、距离和零距离覆盖值。
 
-Expand **Initial marked edges** to toggle a specific axial edge, edit by clicking the canvas, clear the marks, or generate a fixed-count random set. Axial `(q,r)` corresponds to `(q+r/2, √3·r/2)` on the drawing; directions 0–5 run counterclockwise from east. Reverse descriptions of the same edge are identical. The random seed, radius and edge count produce a reproducible set; saved setups contain the actual edge list. **Enclose this hexagon** marks every edge crossing its boundary. It is different from tracing the hexagon's perimeter. At most 512 initial edges are accepted.
+“原地等待”消耗受阻指令而不移动。“逆时针搜索”在同一条指令内旋转，跳过已标记方向，找到可用边后前进。组合动作先执行配置的转向，再应用受阻规则。转向统计包含配置动作与每次 60° 搜索转向。
 
-Turning on canvas editing centers a lattice guide near the origin. Click near an edge to add/remove it; drag and pinch still move the view. Zoom in when the lattice is too small for precise selection. Editing restarts the walk, so an edge used by the previous drawing can become an initial mark. Seed edits preserve the camera; Fit drawing includes both the path and seeds.
+展开“初始标记边”可切换指定轴坐标边、点击画布编辑、清空标记或生成固定数量的随机集合。轴坐标 `(q,r)` 在图中对应 `(q+r/2, √3·r/2)`；方向 0–5 从东向逆时针排列。同一条边的反向描述等价。随机种子、半径与边数决定可复现的集合，配置保存实际边列表。“封闭此六边形”标记所有跨越边界的边，区别于只描出六边形周长。最多接受 512 条初始边。
 
-The status line separates three situations:
+开启编辑后，视图以原点附近的格点为中心。点击边附近添加或删除标记，拖动和捏合仍可移动视图；太小时先放大。编辑会重新计算，因此旧图中走过的边可成为新的初始禁边。编辑保留相机位置，“适配轨迹”会同时包含轨迹和初始边。
 
-- **Trapped**: all six incident edges are marked. The walk stops before another instruction, including a possible zero-instruction initial trap.
-- **Term limit reached**: the requested prefix ended. This alone says nothing about eventual trapping or permanent stalling.
-- **Movement locked**: an invariant proves that no future forward move can succeed, or the table has no forward action. Instructions still run and can rotate the turtle. The certificate is sufficient, not a complete detector of every possible stationary future.
+状态栏区分：
 
-For the invariant, take the subgroup of the six headings generated by all configured turn amounts. If every edge reachable within the current heading's subgroup is marked under the stay policy, all future requests remain blocked. An example is 180° parity turns with the single initial edge `(2,0,0)`: after two moves, the forward and backward edges are both marked while four other directions remain free.
+- **陷住**：当前位置六条邻边全部被标记，在下一条指令前停止；初始时即陷住可消耗 0 条指令。
+- **达到项数上限**：仅表示指定前缀计算结束，不能判断以后是否陷住或永远停在原处。
+- **位置锁定**：不变量证明以后前进均无法成功，或动作表根本没有前进。指令仍可执行并改变方向。该证书是充分条件，不能检出所有可能的静止未来。
 
-**Unblocked / after edge search** colors successful moves by whether searching was required. The inspector shows each requested action and its actual outcome. **Show possible trap sites** adds pink rings derived from the odd degrees of the initial-edge graph, with the origin's parity reversed. These are necessary candidates, not predictions that the turtle will reach or trap there; some may be unreachable.
+位置锁定不变量使用所有转角在六种方向中生成的子群。在原地等待规则下，如果当前方向所属子群能请求的边全部已标记，则以后请求一直受阻。例如，180° 奇偶转向、单条初始边 `(2,0,0)` 会在两次移动后使前后边均被标记，但其他四个方向仍自由。
 
-## View and playback
+“直接通过／搜索后通过”按成功移动是否经过搜索着色。逐项检查器同时显示请求动作与实际结果。“可能的陷阱位置”用初始边图的奇度顶点（原点奇偶性相反）生成粉色圆环。这只是必要候选，不预测会到达或陷住，其中部分位置可能无法到达。
 
-- Drag the canvas to pan; scroll, pinch with two touches, or use + / − to zoom.
-- Fit drawing centers and scales the full path, including flat and empty paths. It changes only the camera.
-- With the canvas focused: **F** fits, **Space** plays/pauses, **+ / −** zoom, and **Left / Right** step one term.
-- Replay speed ranges from ¼× to 8×. Pausing or dragging the scrubber retains the chosen sequence position. Playback pauses when the document becomes hidden.
-- With a settings tab focused: Left/Right changes tabs; Home/End selects the first/last.
-- Resize the settings panel by dragging its divider, or focus the divider and use Left/Right; Home restores its default width.
-- On a narrow screen, Customize jumps to the editor beneath the drawing.
-- The ring marks the start, and the triangle marks the turtle and its direction.
+## 视图与播放
 
-Colors can follow sequence order, line direction, rule remainder, or one chosen color. Direction/remainder paths are grouped by color for performance; when a path retraces itself, color groups can cover earlier groups. Sequence colors progress from first to last. Line weight is in screen pixels and stays constant as you zoom.
+- 拖动平移；滚轮、双指捏合或 +／− 缩放。
+- “适配轨迹”居中并缩放完整轨迹，也处理平直或空轨迹；仅改变相机。
+- 焦点位于画布时，**F** 适配、**空格**播放或暂停、**+／−** 缩放、**左／右键**逐项后退或前进。
+- 速度为 ¼× 至 8×；暂停或拖动进度条会保留位置，页面隐藏时暂停播放。
+- 焦点位于设置标签时，左／右键切换，Home／End 选择首／末标签。
+- 拖动面板分隔线调整宽度；也可聚焦分隔线后用左／右键调整，Home 恢复默认宽度。
+- 窄屏上的“调整设置”跳到绘图下方的编辑器。
+- 圆环标起点，三角形标海龟及方向。
 
-## Save and export
+颜色可按数列顺序、方向、余数或单色选择。方向和余数模式为提高性能按颜色分组绘制；轨迹重叠时后绘制的颜色组可能覆盖前组。数列配色按首项到末项渐变。线宽按屏幕像素计，缩放时不变。
 
-Expand **Save & load setups**. Save here stores up to 12 named setups in local browser storage. Saving the same name replaces that entry. Loading restores rules and appearance; removing a saved entry leaves the current drawing intact. Storage is specific to the browser and origin, including the port.
+## 保存与导出
 
-Download JSON creates a portable version-2 setup containing the model and exact seed edges. Version-1 files still load with their original free geometry when they have no edge settings. The existing browser library is retained and migrated on reading. Import validates the entire file before changing the experiment, rejects unknown fields, and accepts files only up to 64 KB. Setup names are plain text. No expressions or scripts are evaluated.
+展开“保存与加载配置”。“保存到本机”在浏览器本地保存最多 12 个命名配置，同名覆盖。加载恢复规则和外观；删除保存项不改变当前图案。存储按浏览器和来源（包括端口）区分。
 
-Save PNG exports the visible view with its selected background and optional markers, including initial edges, trap markers, and the lattice guide when editing is enabled. The CSS dot grid is not exported. Downloads use the browser's usual download handling. Some embedded browsers may not surface downloads; use the local URL in a regular browser in that case.
+“下载 JSON”生成含模型和精确初始边的版本 2 配置。没有避边字段的版本 1 文件仍按原自由几何加载。既有本地配置库在读取时迁移。导入先完整验证再改变实验，拒绝未知字段，文件最多 64 KB。名称按纯文本处理，不执行表达式或脚本。
 
-## Limits
+PNG 导出当前可见视图，含背景、可选标记、初始边、陷阱标记，以及编辑时的格点辅助线；不导出 CSS 点阵。下载由浏览器处理。内嵌浏览器若不显示下载，可在普通浏览器打开本机地址。
 
-At most 1,000,000 terms are generated. Integer sequence values are exact within the enforced range. Free drawing uses floating-point trigonometry; edge geometry and edge identities use exact integer axial coordinates, converted to floating point only for display. A finite drawing is not a proof of fractality.
+## 限制
 
-The optional browser WebMCP API exposes read/configure actions using the same validation and visible state. It is not required for ordinary use.
+最多生成 1,000,000 项。数列整数在受限范围内精确；自由绘图使用浮点三角函数，避边几何和边身份使用精确整数轴坐标，仅显示时转换为浮点。有限图案不能证明分形性。
+
+可选的浏览器 WebMCP 接口使用相同的验证和可见状态提供读取／配置操作，普通使用不依赖此接口。

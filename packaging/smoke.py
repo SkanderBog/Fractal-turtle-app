@@ -51,7 +51,7 @@ def main():
                 connection.close()
                 return result
 
-            for asset in ['index.html','style.css','app.mjs','core.mjs', 'edge.mjs','worker.mjs','setup.mjs','favicon.svg']:
+            for asset in ['index.html','style.css','zh-CN.mjs','app.mjs','core.mjs', 'edge.mjs','worker.mjs','setup.mjs','favicon.svg']:
                 status, headers, body = request('/'+asset)
                 assert status == 200 and body, asset
                 assert "connect-src 'none'" in headers['Content-Security-Policy']
@@ -59,13 +59,13 @@ def main():
                 assert headers['X-Content-Type-Options'] == 'nosniff'
                 assert body == (bundle / '_internal/dist' / asset).read_bytes(), asset
             assert request('/')[0] == 200
-            assert b'Sum of digit weights' in request('/')[2]
+            assert '各位数字的权重之和'.encode('utf-8') in request('/')[2]
             for path in ['/../START_HERE.md','/%2e%2e/BUILD-INFO.json','/.git/config','/.openai/hosting.json','/launcher.py','/_internal/','/index.html%00']:
                 assert request(path)[0] in [400,404], path
             assert request('/', host=f'evil.example:{port}')[0] == 403
             assert request('/', method='POST')[0] == 501
             assert request('/app.mjs', method='HEAD')[2] == b''
-            print(f'PASS: native executable, all 7 exact assets, security boundaries, {len(manifest)} file hashes; {args.archive.name}')
+            print(f'PASS: native executable, all 9 exact assets, security boundaries, {len(manifest)} file hashes; {args.archive.name}')
         finally:
             process.terminate()
             try:

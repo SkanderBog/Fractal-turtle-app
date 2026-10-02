@@ -38,6 +38,7 @@ def main():
     shutil.copyfile(ROOT / 'packaging/START_HERE.md', bundle / 'START_HERE.md')
     notices = bundle / 'THIRD_PARTY'
     notices.mkdir()
+    shutil.copyfile(ROOT / 'THIRD_PARTY_NOTICES.md', notices / 'TURTLE-COMPONENT-NOTICES.md')
     shutil.copyfile(ROOT / 'packaging/PYTHON-LICENSE.txt', notices / 'PYTHON-LICENSE.txt')
     shutil.copyfile(ROOT / 'packaging/PYTHON-THIRD-PARTY-NOTICES.txt', notices / 'PYTHON-THIRD-PARTY-NOTICES.txt')
     # Retain licenses accompanying every build distribution, including bootloader exceptions.

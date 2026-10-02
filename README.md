@@ -1,48 +1,43 @@
-# Turtle Lab
+# 海龟实验室
 
-A lightweight, colorful playground for number-driven turtle paths. It starts with integers in base 2: an even digit sum moves the turtle forward, and an odd sum turns it 60° counterclockwise without moving.
+[English](README.en.md) · [完整使用说明](turtle-lab/README.md) · [打包与下载](packaging/README.md) · [验证记录](turtle-lab/VERIFICATION.md) · [安全说明](SECURITY.md)
 
-## Run
+这是一个轻量的数字绘图实验工具：用数列产生指令，让海龟前进或转向，并观察轨迹。默认从二进制整数 0 开始：各位数字之和为偶数时前进一个单位，为奇数时原地逆时针转 60°。
 
-**Alpha downloads:** [Linux, Windows, and macOS packages](https://github.com/SkanderBog/Fractal-turtle-app/releases). Extract the complete archive and follow `START_HERE.md`. Packages include Python and open the app in your default browser. Linux x64 requires glibc 2.35+; Windows x64 and macOS arm64/Intel builds are separate. Builds are unsigned and macOS builds are not notarized, so your OS may block them. See [release and build details](packaging/README.md).
+## 启动
 
-To run from source:
+**发行包：**[Linux、Windows 和 macOS 测试版下载](https://github.com/SkanderBog/Fractal-turtle-app/releases)。完整解压后阅读 `START_HERE.md`。包内含 Python，通过默认浏览器打开。Linux x64 需要 glibc 2.35+；Windows x64、macOS arm64 和 Intel 分别提供包。包未签名，macOS 包未公证；具体限制见[打包说明](packaging/README.md)。已有下载包不自动包含本次源码更新，须以包内提交记录为准。
 
-Requires **Python 3.10+**. No packages need to be installed.
+从源码运行需要 **Python 3.10+**，无需安装依赖：
 
 ```sh
 ./run.sh
 ```
 
-Open **http://127.0.0.1:4173** in your browser. If that port is occupied:
+访问 **http://127.0.0.1:4173**。端口占用时可使用 `./run.sh --port 4174`。
 
-```sh
-./run.sh --port 4174
-```
+应用使用模块 worker，不能直接双击 HTML 文件运行。绘图计算和保存的配置都留在浏览器内；不加载远程字体、脚本、统计或其他第三方资源。
 
-Opening the HTML directly as a file is not supported because the app uses a module worker. All drawing calculations and saved setups stay in your browser. The app does not load remote fonts, scripts, analytics, or other third-party resources.
+## 可以做什么
 
-## Explore
+- 在“数列、规则、外观”三个标签页中调整实验；拖动调整设置面板宽度，也可隐藏面板。
+- 使用整数、平方数、三角数，选择 2–36 进制，调整起点、间隔和最多 **1,000,000 项**的长度。
+- 计算数字和、自定义数字权重和、末位、非零数字个数或某个数字的出现次数。每个数字可以有负整数权重。
+- 为每种余数指定前进、左转、右转、先转向再前进或暂停，并分别覆盖默认转角与步长。
+- 在三角格点上使用**避边模式**，选择受阻等待或逆时针搜索；编辑初始禁边，生成可复现的随机标记或封闭六边形。
+- 区分陷阱、达到项数上限和由不变量证明的位置锁定；查看受阻请求、访问顶点和搜索转向。
+- 按数列位置、方向、余数、碰撞情况或单色绘制；调整配色、背景、线宽、网格和标记。
+- 自动适配完整轨迹、平移、缩放、触摸捏合、调速播放和逐项前后步进。
+- 展开轨迹说明，核对每个数对应的计算和实际动作。
+- 在本浏览器中保存最多 12 个命名配置，导入导出 JSON，并保存当前视图为 PNG。
 
-- A resizable settings panel with **Sequence**, **Rules**, and **Style** tabs; hide it to give the drawing the full window.
-- Integer, square, and triangular sequences; bases 2–36; adjustable starting index, interval, and up to **1,000,000 terms**.
-- Digit sum, **sum of custom digit weights**, last digit, nonzero-digit count, or occurrences of a chosen digit. Set a signed integer weight for every digit, with shortcuts for digit values, all ones, and all zeros.
-- An independent action for every remainder: forward, left, right, turn then forward, or pause.
-- **Edge-avoiding mode** on the triangular lattice, with stay/search policies, editable initial edges, reproducible random marks, and hexagon cages.
-- Replay distinguishes traps, cutoffs, and invariant-certified movement locks; inspect blocked requests, unique vertices, search turns, and possible trap sites.
-- Default angle and distance, starting direction, and optional **per-rule angle and distance overrides**.
-- Colors by sequence position, movement direction, remainder, or a solid color. Four palettes, three backgrounds, line weight, grid, and marker controls.
-- Automatic fit, pan, zoom, touch pinch, playback speed, and exact single-term stepping.
-- An expandable explanation of the numbers and instructions behind the current path.
-- Save up to 12 named setups in this browser, import/export JSON, and export the current drawing view as PNG.
+配置按浏览器和来源（包括端口）分别保存；迁移或备份请导出 JSON。PNG 包含背景、轨迹、初始边及可见标记；启用边编辑时也包含格点辅助线，但不包含 CSS 点阵背景。
 
-See [the app guide](turtle-lab/README.md) for rule details and keyboard controls. Saved setups are local to your browser and origin, including the port; export JSON to transfer or back them up. PNG export includes the selected background, path, initial edges and visible markers. The lattice guide is included when edge editing is enabled; the CSS dot grid is not.
+**有限图案不能证明其无限极限是分形。** 适配视图只改变显示比例，始终保留原数学坐标。
 
-A finite picture does not establish that its infinite limit is a fractal. The app generates finite paths and fits their complete bounds without changing their mathematical coordinates.
+## 检查
 
-## Tests
-
-Requires Node.js 20+ for JavaScript tests; Python is used for server tests.
+JavaScript 检查需要 Node.js 20+，服务器检查需要 Python：
 
 ```sh
 cd turtle-lab
@@ -51,17 +46,19 @@ npm test
 npm run test:server
 ```
 
-There are **51 automated tests**, including independent randomized geometry comparisons, weighted rules across all 35 bases, a million-term sequence, malformed or hostile setup inputs, HTTP server security checks, and launcher behavior. GitHub Actions runs these checks with read-only repository permissions and pinned actions. Native package builds additionally audit build dependencies, verify bundle hashes, and smoke-test the extracted executable on each target OS.
+现有 **51 项自动测试**覆盖独立随机几何比较、全部 35 种进制的权重规则、百万项数列、恶意或畸形配置、HTTP 边界及启动器。GitHub Actions 使用只读权限和固定提交版本的 actions；发行包还要检查依赖、文件哈希及解压后可执行程序。详见[验证记录](turtle-lab/VERIFICATION.md)。
 
-See [verification details](turtle-lab/VERIFICATION.md) and [security notes](SECURITY.md). These are targeted regression checks, not a guarantee that every possible vulnerability has been excluded.
+## 目录职责
 
-## Project layout
+| 路径 | 内容 |
+|---|---|
+| `turtle-lab/dist/` | 直接提供给浏览器的源文件；虽然叫 dist，但无需构建且应提交 |
+| `core.mjs`、`edge.mjs` | 数字规则、几何、精确整数边记忆与位置锁定证书 |
+| `worker.mjs` | 可取消的后台轨迹计算 |
+| `setup.mjs` | 配置与 JSON 验证 |
+| `app.mjs`、`zh-CN.mjs` | 中文界面、编辑、渲染、保存与提示翻译 |
+| `turtle-lab/serve.py`、`launcher.py` | 本机只读服务器与启动器 |
+| `turtle-lab/tests/` | 几何、输入、服务器和启动器检查 |
+| `packaging/` | 各平台打包、使用说明与依赖声明 |
 
-- `turtle-lab/dist/`: directly served HTML, CSS, and JavaScript modules; no build step.
-- `core.mjs`: validated number rules and turtle geometry.
-- `edge.mjs`: exact axial edge memory, seed tools, and movement-lock certificates.
-- `worker.mjs`: cancellable background geometry generation.
-- `setup.mjs`: strict configuration and JSON-file validation.
-- `app.mjs`: editor, renderer, saved setups, and browser interactions.
-- `turtle-lab/serve.py`: loopback-only, read-only static server.
-- `turtle-lab/tests/`: geometry, hostile-input, and server tests.
+英文原稿以 `.en.md` 保留。命令、代码标识符、JSON 字段和许可证原文不翻译，保证兼容与可检索。研究证明和大数据放在独立研究仓库，不混入应用发行包。

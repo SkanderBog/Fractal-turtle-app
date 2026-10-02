@@ -1,44 +1,38 @@
-# Verification — 2026-09-29
+# 验证记录
 
-## Automated checks
+[English：历史原稿](VERIFICATION.en.md) · [项目首页](../README.md)
 
-All **43 tests passed** locally:
+## 2026-09-29 的源码检查
 
-- **18 geometry tests:** exact initial example; bases 2–36 against string-based calculations; clockwise/counterclockwise and combined actions; zero-angle/empty paths; sequence transforms; input precision; viewport fitting; a million-term sequence; initial direction and scale; per-rule overrides; 100 deterministic randomized experiments checked against an independent turtle; defensive array copying; default weighted/unweighted path equivalence across every base; signed weights and safe-integer endpoints; zero and leading-zero semantics; negative remainders; malformed weight vectors; and independently calculated weighted motion for all sequence types.
-- **11 setup/security tests:** full JSON round-trip; weighted setup compatibility with old files; invalid imported weights; malformed/oversized files; unknown and prototype-related keys; invalid object/array/value types; resource limits; bounded appearance values; literal and bounded names; schema versions; and source checks against execution/injection sinks and remote resource dependencies.
-- **10 HTTP server tests:** asset and MIME correctness; security headers; private files and encoded traversal; no directory listing; symlink escape; hostile and duplicate hosts; unsupported write methods; HEAD behavior; and concurrent module loading.
-- **4 launcher tests:** stable origin, occupied-port fallback, explicit-port/permission errors, and invalid arguments.
+最初 **43 项**测试均通过，随后避边功能增加 **8 项**，总计 **51 项**。这解释了旧文档中 43 与 51 的区别，不把不同版本的计数混用。
 
-JavaScript syntax checks and shell syntax checks passed. The GitHub workflow runs syntax, JavaScript tests, and HTTP server tests; live CI results are authoritative for each commit.
+- **18 项几何测试**：默认轨迹，2–36 进制与字符串计算对照，顺／逆时针和组合动作，零角度与空轨迹，数列变换，精度限制，视图适配，百万项数列，初始方向和尺度，逐规则覆盖，100 个确定性随机实验与独立海龟实现比较，数组防御复制，全部进制中默认权重与普通数字和一致，有符号权重和安全整数端点，零与前导零语义，负余数，畸形权重向量，以及各类数列的独立权重运动计算。
+- **11 项配置／安全测试**：JSON 往返，旧文件兼容，错误权重，畸形或超大文件，未知和原型相关键，对象／数组／值类型，资源上限，外观范围，名称纯文本及长度，版本，以及执行／注入入口和远程依赖源代码检查。
+- **10 项 HTTP 测试**：资源和 MIME，安全头，私有路径及编码穿越，无目录列表，符号链接，恶意／重复 Host，写入方法，HEAD，并发模块加载。
+- **4 项启动器测试**：稳定来源，占用端口回退，显式端口／权限错误和无效参数。
 
-The native package workflow runs the same suite on Linux x64, Windows x64, macOS arm64, and macOS x64. It also scans the exact build environment for known package vulnerabilities and tests each extracted executable and its file hashes. Release notes link the successful build run. These are executable and HTTP smoke tests, not certification of native GUI launch behavior. See [packaging details](../packaging/README.md).
+JavaScript 和 shell 语法检查通过。GitHub 工作流运行语法、JavaScript 与 HTTP 测试，每个提交的实际 CI 结果才是该提交的远端状态。
 
-Gitleaks 8.30.1 scanned the repository history and working-tree source before publication, with no leaks found. The downloaded scanner was checked against its published SHA-256 digest. This is a targeted secret scan, not a full security audit.
+原生打包在 Linux x64、Windows x64、macOS arm64 和 macOS x64 运行同样的检查，扫描构建环境已知依赖漏洞，并测试解压后程序及哈希。它们是可执行程序和 HTTP 冒烟测试，不认证所有实体设备的 GUI 行为。见[打包说明](../packaging/README.md)。
 
-## Browser checks
+历史发布前曾用 Gitleaks 8.30.1 扫描仓库历史和工作区，未发现泄漏；扫描器按公布的 SHA-256 校验。这是当时的专项扫描，不是本次重新执行的完整安全审计。
 
-Verified the updated app with its secured server:
+## 历史浏览器检查
 
-- Initial drawing, presets, per-rule angle/distance edits, live geometry read-back, and reset.
-- Weighted rule editing, negative integers, invalid-weight error feedback, base-36 inputs, and preservation of hidden weights when lowering and restoring the base.
-- Weighted setups saved and restored across reload, recovery after switching away from an unfinished weight, recovery when an unfinished digit becomes hidden, and a 390-pixel layout without horizontal overflow.
-- Settings tabs, keyboard panel resizing, hiding/showing the panel, and desktop/390-pixel responsive layouts with no horizontal overflow.
-- Direction/remainder appearance options, paper background, grid toggle, and changing style without regenerating the path.
-- Playback speed, pause, exact term stepping, and a million-term drawing (500,000 moves and 500,000 turns).
-- Saved setup persistence across reload, restoring rules/appearance, and removing the test entry.
-- HTML-like setup names rendered literally. No script executed.
-- Valid JSON import; invalid billion-term import rejected while the previous experiment remained intact.
-- Browser console contained no application or CSP errors during these checks.
+使用安全服务器检查了默认绘图、预设、逐规则角度和距离、实时状态读取、重置；权重编辑、负数、无效值提示、36 进制以及隐藏权重的保留；保存与重载，未完成编辑的恢复；390 像素与桌面布局、标签页、键盘调整面板和隐藏／显示设置。
 
-PNG/JSON export controls dispatch their downloads. The embedded browser did not expose a completed download event, so saved-file delivery was not independently confirmed there; use a regular browser if the embedded browser does not surface downloads. Setup serialization and restoration are covered by automated tests.
+还检查了方向／余数配色、纸白背景、网格、无需重算的外观修改，播放与逐项操作，百万项图案（50 万次移动、50 万次转向），配置保存、恢复与删除。类似 HTML 的名称按字面显示，无脚本执行；无效十亿项导入被拒绝，保留原实验；检查时未见应用或 CSP 控制台错误。
 
-The tests cover the stated cases. They do not prove fractality or rule out all possible security vulnerabilities.
+PNG／JSON 控件可请求下载，但内嵌浏览器未提供完成下载事件，故当时没有独立确认文件最终落盘。序列化与恢复由自动测试覆盖；内嵌浏览器不显示下载时可使用普通浏览器。
 
+## 避边功能（2026-09-29）
 
-## Edge-mode feature verification (2026-09-29)
+版本 1.3.0-alpha.1 增加独立整数边引擎和种子工具，原自由几何测试保留。8 项新增组包含 160 个端点集合参考比较，覆盖两种受阻策略、不同进制／数列／动作、反向边等价、早期和零指令陷阱、恰好在截止处的陷阱、锁定不变量、旧配置迁移、最大导入、确定性随机边、封闭边界和画布命中。
 
-Version 1.3.0-alpha.1 adds an independent integer edge engine and seed tools. The original free-geometry tests remain unchanged. Eight new test groups include 160 endpoint-set reference comparisons over both blocked policies, variable bases/sequences/actions, seed reversal, early and zero-instruction traps, exact-cutoff traps, movement-lock invariants, legacy setup migration, maximum-size imports, deterministic random marks, cage boundaries, and canvas hit testing. Together with the existing tests, there are 51 source test cases.
+浏览器检查涉及四余数预设（13,066 项后陷住）、编辑旧轨迹边、笼形边界、零指令陷阱、实际动作重放、180° 单边位置锁定、碰撞配色、陷阱候选、版本 2 导入、保存／重置／加载，以及百万项生成后立即重置以检查取消。临时测试配置已删除，并检查窄屏和桌面画布。
 
-Browser checks exercised the four-residue preset (13,066-term trap), manual editing of a previously traversed edge, generated cages, zero-term traps, replay of moved/turned/blocked instructions, the 180° single-edge movement lock, collision coloring, trap candidates, seeded version-2 JSON import, and browser save/reset/load. The imported seed and appearance were read back through the app's public interface. A one-million-term generation followed immediately by Reset checks cancellation. The temporary saved test setup was removed. Both the narrow stacked layout and desktop canvas were inspected.
+## 本次中文界面与审查
 
-Native packaging retains the entire served `dist/` directory and checks `edge.mjs` in the extracted-archive smoke test. Platform package results are reported by the GitHub Actions run for the feature commit; local source checks do not substitute for those platform checks. No research measurements, reports, or result datasets are bundled in this app.
+新增本地中文提示模块，静态界面、动态状态、动作说明和主要输入错误均中文化；计算引擎、JSON 字段与旧配置兼容性保持一致。固定服务资源列表与打包冒烟检查同时更新，检查的资源数从 8 变为 9。最终测试与浏览器结果记录于本次交付记录，历史结果不替代新验证。
+
+这些测试针对列出的行为，既不证明分形性，也不排除所有可能的安全问题。应用发行包不包含研究测量、论文、证明或数据集。
